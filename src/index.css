@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Noto Sans JP', 'Inter', system-ui, sans-serif;
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-manga-bg: #faf9f6;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
