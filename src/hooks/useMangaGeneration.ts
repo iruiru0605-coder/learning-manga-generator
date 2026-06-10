@@ -1,8 +1,9 @@
 import { useCallback } from 'react'
 import { useStore } from '@/store'
 import { buildMangaPrompt } from '@/services/promptBuilder'
-import { getProvider } from '@/services/ai/registry'
+import { getProvider, getDefaultModel } from '@/services/ai/registry'
 import { extractAndParseJSON } from '@/services/jsonRepair'
+import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import type { MangaScript } from '@/types'
 
 export function useMangaGeneration() {
@@ -30,7 +31,7 @@ export function useMangaGeneration() {
       const response = await ai.generate({
         systemPrompt,
         userPrompt,
-        model: 'deepseek-chat',
+        model: getDefaultModel(provider),
         apiKey,
       })
 
@@ -43,8 +44,7 @@ export function useMangaGeneration() {
       const script = parsed as unknown as MangaScript
       setScript(script)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '生成中にエラーが発生しました'
-      setError(msg)
+      setError(toFriendlyErrorMessage(err, '生成中にエラーが発生しました'))
     }
   }, [unit, struggle, grade, subject, characterImageUrl, apiKey, provider, setScript, setStatus, setError])
 

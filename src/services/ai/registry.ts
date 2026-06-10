@@ -18,3 +18,7 @@ export const providerConfigs = [
   { id: 'openai' as ProviderId, label: 'OpenAI', defaultModel: 'gpt-4o-mini' },
   { id: 'anthropic' as ProviderId, label: 'Anthropic', defaultModel: 'claude-haiku-4-5' },
 ]
+
+export function getDefaultModel(id: ProviderId): string {
+  return providerConfigs.find((p) => p.id === id)?.defaultModel ?? 'deepseek-chat'
+}

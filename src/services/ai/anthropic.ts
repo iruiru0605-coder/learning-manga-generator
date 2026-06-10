@@ -12,6 +12,8 @@ export class AnthropicProvider implements AIProvider {
         'Content-Type': 'application/json',
         'x-api-key': req.apiKey,
         'anthropic-version': '2023-06-01',
+        // 静的サイトのためブラウザから直接呼び出す（キーはユーザー自身のもの）
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: req.model,

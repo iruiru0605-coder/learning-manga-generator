@@ -84,7 +84,7 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
         {error && (
           <div className="mt-3 rounded-lg bg-red-50 p-4 text-sm text-red-700">
             <p className="font-medium mb-1">⚠️ エラーが発生しました</p>
-            <p>{error}</p>
+            <p className="whitespace-pre-line">{error}</p>
           </div>
         )}
       </div>

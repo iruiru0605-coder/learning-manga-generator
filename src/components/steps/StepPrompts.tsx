@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useStore } from '@/store'
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
 import { generateImage, buildCharacterPrompt, type ImageRef } from '@/services/image/gemini'
+import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import type { MangaPage } from '@/types'
@@ -278,7 +279,7 @@ export function StepPrompts() {
         const dataUrl = `data:${result.mimeType};base64,${result.imageData}`
         setCharStates((prev) => ({ ...prev, [key]: { status: 'done', dataUrl } }))
       } catch (err) {
-        const msg = err instanceof Error ? err.message : '生成に失敗しました'
+        const msg = toFriendlyErrorMessage(err, '生成に失敗しました')
         setCharStates((prev) => ({ ...prev, [key]: { status: 'error', error: msg } }))
       }
     },
@@ -324,7 +325,7 @@ export function StepPrompts() {
         const dataUrl = `data:${result.mimeType};base64,${result.imageData}`
         setPageStates((prev) => ({ ...prev, [pageNumber]: { status: 'done', dataUrl } }))
       } catch (err) {
-        const msg = err instanceof Error ? err.message : '画像生成に失敗しました'
+        const msg = toFriendlyErrorMessage(err, '画像生成に失敗しました')
         setPageStates((prev) => ({ ...prev, [pageNumber]: { status: 'error', error: msg } }))
       }
     },
