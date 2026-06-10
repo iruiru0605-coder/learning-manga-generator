@@ -21,11 +21,26 @@ export interface MangaPage {
   imageGenerationPrompt: string
 }
 
+export interface CharacterDesign {
+  name: string
+  appearance: string
+  personality: string
+  role?: string
+}
+
+export interface MangaCharacterDesign {
+  teacher: CharacterDesign
+  student: CharacterDesign
+  mascot?: CharacterDesign
+}
+
 export interface MangaScript {
   title: string
   unitName: string
   struggleSummary: string
   targetAudience: string
+  characterDesign?: MangaCharacterDesign
+  testKeywords?: string[]
   pages: MangaPage[]
   createdAt: string
 }

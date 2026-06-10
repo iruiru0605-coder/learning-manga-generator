@@ -3,14 +3,19 @@
  * Uses the Gemini generateContent endpoint with responseModalities: ["IMAGE", "TEXT"].
  */
 
+export interface ImageRef {
+  mimeType: string
+  data: string // base64
+}
+
 export interface ImageGenRequest {
   prompt: string
   apiKey: string
-  referenceImageUrl?: string
+  referenceImages?: ImageRef[]
 }
 
 export interface ImageGenResponse {
-  imageData: string // base64 encoded image
+  imageData: string // base64
   mimeType: string
 }
 
@@ -23,41 +28,28 @@ function getBaseUrl(): string {
 
 export async function generateImage(req: ImageGenRequest): Promise<ImageGenResponse> {
   const url = import.meta.env.DEV
-    ? `${getBaseUrl()}`
+    ? getBaseUrl()
     : `${getBaseUrl()}?key=${encodeURIComponent(req.apiKey)}`
 
-  const parts: Record<string, unknown>[] = [{ text: req.prompt }]
+  const parts: Record<string, unknown>[] = []
 
-  // If reference image URL is provided, include it
-  if (req.referenceImageUrl) {
-    try {
-      // Fetch the reference image and include as base64
-      const imgRes = await fetch(req.referenceImageUrl)
-      if (imgRes.ok) {
-        const blob = await imgRes.blob()
-        const buffer = await blob.arrayBuffer()
-        const base64 = btoa(
-          new Uint8Array(buffer).reduce((d, b) => d + String.fromCharCode(b), '')
-        )
-        const mimeType = blob.type || 'image/png'
-        parts.unshift({
-          inlineData: {
-            mimeType,
-            data: base64,
-          },
-        })
-      }
-    } catch {
-      // Silently continue without reference image if fetch fails
+  // Include reference images first (character references for consistency)
+  if (req.referenceImages) {
+    for (const ref of req.referenceImages) {
+      parts.push({
+        inlineData: {
+          mimeType: ref.mimeType,
+          data: ref.data,
+        },
+      })
     }
   }
 
+  // Then the text prompt
+  parts.push({ text: req.prompt })
+
   const body: Record<string, unknown> = {
-    contents: [
-      {
-        parts,
-      },
-    ],
+    contents: [{ parts }],
     generationConfig: {
       responseModalities: ['IMAGE', 'TEXT'],
     },
@@ -85,13 +77,12 @@ export async function generateImage(req: ImageGenRequest): Promise<ImageGenRespo
 
   const data = await res.json()
 
-  // Extract image from response
-  const parts2 = data.candidates?.[0]?.content?.parts
-  if (!parts2) {
+  const respParts = data.candidates?.[0]?.content?.parts
+  if (!respParts) {
     throw new Error('Geminiから画像が返ってきませんでした。プロンプトを調整してもう一度お試しください。')
   }
 
-  for (const part of parts2) {
+  for (const part of respParts) {
     if (part.inlineData) {
       return {
         imageData: part.inlineData.data,
@@ -101,4 +92,26 @@ export async function generateImage(req: ImageGenRequest): Promise<ImageGenRespo
   }
 
   throw new Error('Geminiからの応答に画像データが含まれていませんでした。')
+}
+
+/**
+ * Shortcut: generate character reference image from a description.
+ */
+export function buildCharacterPrompt(character: {
+  name: string
+  role?: string
+  appearance: string
+  personality: string
+}): string {
+  return `Character reference sheet for a Japanese educational manga character.
+Single character, full body standing pose, front view, white background.
+
+Name: ${character.name}
+Role: ${character.role || 'Character'}
+Appearance: ${character.appearance}
+Personality: ${character.personality}
+
+Style: Clean manga line art, black and white, simple shading, chibi-inspired proportions, cute and friendly expression.
+Character design sheet, turnaround reference. Safe for children's educational materials.
+Cartoon illustration, 2D anime art, G-rated content. No background, just the character on white.`
 }
