@@ -19,6 +19,8 @@ export const useStore = create<StoreState>()(
         apiKey: state.apiKey,
         provider: state.provider,
         modelName: state.modelName,
+        characterImageUrl: state.characterImageUrl,
+        imageApiKey: state.imageApiKey,
       }),
     }
   )

@@ -5,6 +5,7 @@ export function buildMangaPrompt(
   struggle: string,
   grade: Grade | null,
   subject: Subject | null,
+  characterImageUrl: string,
 ) {
   const gradeLabel = grade?.label ?? '対象学年'
   const subjectLabel = subject?.label ?? '対象教科'
@@ -64,15 +65,23 @@ ${gradeGuidance}
 このフィールドには、画像生成AIが「1ページ全体の漫画」を1枚の画像として生成できるよう、
 以下の要素をすべて含めた詳細な英語プロンプトを書いてください：
 
+【コンテンツ安全基準 — 必ず守ること】
+すべてのimageGenerationPromptの先頭に、以下の安全プレフィックスを必ず付けてください：
+"Safe educational manga illustration for children's textbook. Cartoon drawing style, G-rated content. "
+
+その上で、以下の要素をすべて含めてください：
+
 1. ページ全体のコマ割り（panel layout）: 何コマで、どのような配置か
-2. 【必須】各キャラクターの外見を毎回明記すること：
-   - Female teacher: short black hair, round glasses, white lab coat over light blue blouse, navy skirt, slim build
-   - Male student Taro: slightly messy black hair, big round eyes, navy school blazer with grey pants
-   - Female student Hanako: twin-tail brownish long hair, large sparkling eyes, navy school blazer with grey skirt
+2. 【必須】各キャラクターの外見を毎回明記すること。キャラクターは必ず「cartoon character」「anime style drawing」「chibi manga style」と明示すること：
+   - Female teacher (cartoon character, anime style): short black hair, round glasses, white lab coat over light blue blouse, navy skirt, chibi proportions
+   - Male student Taro (cartoon character, anime style, chibi): slightly messy black hair, big round expressive eyes, navy school blazer with grey pants
+   - Female student Hanako (cartoon character, anime style, chibi): twin-tail brownish long hair, large sparkling eyes, navy school blazer with grey skirt
 3. 各コマの内容: キャラクターの表情・ポーズ・位置、背景、吹き出しの位置とテキスト
-4. 画風: manga style, black and white, screentone shading, educational manga
+4. 画風指定（必ず明記）: manga style, black and white line art, screentone shading, educational manga for children, cartoon illustration, 2D anime art, safe for work
 5. 重要なポイントは枠で囲む、"IMPORTANT" や "TEST TIP" のラベルを大きな文字で強調
 6. 各コマ内の吹き出しには英語でセリフを書く（日本語のセリフを英訳して吹き出しに入れる）
+7. 禁止事項: リアルな人体描写、生々しい医学的描写、ホラー要素、暴力表現、性的な要素。あくまで「かわいい教育漫画」の絵柄を守ること
+${characterImageUrl ? `8. 【重要】キャラクター参照画像: 以下のURLの画像をキャラクターのデザイン参考として使用すること。各コマのキャラクターはこの参照画像のデザインに忠実に描くこと: ${characterImageUrl}` : ''}
 
 【出力形式】
 以下のJSON形式で厳密に出力してください。余計な説明は一切不要です:
@@ -140,7 +149,10 @@ ${struggle}
 - 各ページの1コマ目は必ず「大ゴマ」で、読者の興味を引きつける
 - セリフは吹き出し（speech/thought）とナレーションボックス（narration）を使い分ける
 - imageGenerationPromptは必ず「1ページ全体の漫画レイアウト」として英語で書く（300文字以上）
-- すべてのページのimageGenerationPromptにキャラクターの外見（Female teacher: short black hair, round glasses, white lab coat... / Student: ...）を毎回必ず含める
+- 【重要】すべてのimageGenerationPromptの先頭に "Safe educational manga illustration for children's textbook. Cartoon drawing style, G-rated content." を必ず付ける
+- 【重要】すべてのキャラクターは必ず "cartoon character, anime style, chibi manga style" と明記する（リアルな人物描写を避けるため）
+- すべてのページのimageGenerationPromptにキャラクターの外見を毎回必ず含める
+- imageGenerationPromptに性的・暴力的・ホラー的な要素を一切含めないこと
 - すべてのページが完成した学習漫画として成立していること
 - testKeywords には、この漫画で学習する「定期テストに出る重要キーワード」を最低5個リストアップすること`
 

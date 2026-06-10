@@ -6,8 +6,12 @@ import type { ProviderId } from '@/types'
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const apiKey = useStore((s) => s.apiKey)
   const provider = useStore((s) => s.provider)
+  const characterImageUrl = useStore((s) => s.characterImageUrl)
+  const imageApiKey = useStore((s) => s.imageApiKey)
   const setApiKey = useStore((s) => s.setApiKey)
   const setProvider = useStore((s) => s.setProvider)
+  const setCharacterImageUrl = useStore((s) => s.setCharacterImageUrl)
+  const setImageApiKey = useStore((s) => s.setImageApiKey)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
@@ -45,6 +49,80 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <p className="mb-4 text-xs text-gray-400">
           APIキーはあなたのブラウザにのみ保存され、外部に送信されることはありません
         </p>
+
+        <hr className="mb-4 border-gray-200" />
+
+        <h3 className="mb-3 text-sm font-bold text-gray-800">画像生成設定（任意）</h3>
+        <p className="mb-2 text-xs text-gray-500">
+          APIキーを設定すると、ツール上で画像生成まで完結できます。未設定の場合はコピペ式でご利用ください。
+        </p>
+
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          画像生成APIキー（Gemini）
+        </label>
+        <input
+          type="password"
+          className="mb-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          placeholder="AIza..."
+          value={imageApiKey}
+          onChange={(e) => setImageApiKey(e.target.value)}
+        />
+        <div className="mb-3 rounded-lg bg-green-50 p-3 text-xs text-green-800">
+          <p className="font-medium mb-1">料金の目安（8ページの漫画1作品あたり）</p>
+          <table className="w-full mt-1">
+            <thead>
+              <tr className="text-left">
+                <th className="py-0.5">方法</th>
+                <th className="py-0.5">料金</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Gemini API (Nano Banana)</td>
+                <td>約47円（$0.039×8枚）</td>
+              </tr>
+              <tr>
+                <td>ChatGPT Image2</td>
+                <td>Plus加入者は無料</td>
+              </tr>
+              <tr>
+                <td>NanoBanana（無料枠）</td>
+                <td>20枚/日まで無料</td>
+              </tr>
+              <tr>
+                <td>コピペ式</td>
+                <td>無料</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="mt-1">
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline">
+              Gemini APIキーを取得 →
+            </a>
+          </p>
+        </div>
+
+        <hr className="mb-4 border-gray-200" />
+
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          キャラクター参照画像URL（任意）
+        </label>
+        <input
+          type="text"
+          className="mb-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          placeholder="https://... （画像URL）"
+          value={characterImageUrl}
+          onChange={(e) => setCharacterImageUrl(e.target.value)}
+        />
+        <div className="mb-4 rounded-lg bg-blue-50 p-3 text-xs text-blue-800">
+          <p className="font-medium mb-1">キャラクターを統一したい場合：</p>
+          <ol className="list-decimal ml-4 space-y-0.5">
+            <li>ChatGPT Image2 や NanoBanana でキャラクター画像を1枚生成</li>
+            <li>生成された画像を右クリック →「画像アドレスをコピー」</li>
+            <li>ここにURLを貼り付けてください</li>
+          </ol>
+          <p className="mt-1">全ページの画像生成プロンプトに参照画像として自動付与されます。</p>
+        </div>
 
         <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
           <strong>おすすめ:</strong> DeepSeek V4 を使うと1回の生成が約0.0035ドル（約0.5円）です。
