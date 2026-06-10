@@ -1,4 +1,4 @@
-import type { TeachingUnit, Grade, Subject } from '@/types'
+import type { TeachingUnit, Grade, Subject, CharacterCustom } from '@/types'
 
 export function buildMangaPrompt(
   unit: TeachingUnit,
@@ -6,6 +6,7 @@ export function buildMangaPrompt(
   grade: Grade | null,
   subject: Subject | null,
   characterImageUrl: string,
+  custom?: CharacterCustom,
 ) {
   const gradeLabel = grade?.label ?? '対象学年'
   const subjectLabel = subject?.label ?? '対象教科'
@@ -14,6 +15,13 @@ export function buildMangaPrompt(
 
   // Grade-specific curriculum guidance
   const gradeGuidance = getGradeGuidance(level, gradeYear, subjectLabel)
+
+  // Custom student character (parent-specified name / gender / notes)
+  const studentName = custom?.studentName.trim() || ''
+  const studentGender = custom?.studentGender ?? 'auto'
+  const characterNotes = custom?.characterNotes.trim() || ''
+  const defaultStudentName = studentGender === 'girl' ? 'はなこ' : 'たろう'
+  const studentJsonName = studentName || defaultStudentName
 
   const systemPrompt = `あなたは教育漫画のプロの漫画家であり、${gradeLabel}の学習指導要領に精通した教育のプロフェッショナルです。
 与えられた「教科書の単元」と「学習者の苦手情報」をもとに、${gradeLabel}の実際の定期テスト・入試で問われる重要ポイントを盛り込んだ学習漫画の台本を8ページ分作成してください。
@@ -50,12 +58,21 @@ ${gradeGuidance}
 - 性格: 博識で説明上手、生徒の質問にどんなことでも丁寧に答える
 - 決め台詞: 「よく気づいたね！」「それがポイントだよ！」
 
-■ 生徒役（性別は学習者の性別に合わせる）
+■ 生徒役${studentName ? `「${studentName}」（保護者指定の名前。セリフ・ナレーションでも必ずこの名前で呼ぶこと）` : `（性別は学習者の性別に合わせる）`}
 - 勉強は苦手だが好奇心旺盛な${gradeLabel}の生徒
-- 外見（男子「たろう」の場合）: 少しクセのある黒髪、丸い目、学校の制服（紺のブレザーにグレーのズボン）、ランドセルまたは学生カバン
-- 外見（女子「はなこ」の場合）: 二つ結びの茶色がかった長い髪、大きな瞳、学校の制服（紺のブレザーにグレーのスカート）、ランドセルまたは学生カバン
+${
+  studentGender === 'boy'
+    ? `- 性別: 男の子（保護者指定）
+- 外見ベース: 少しクセのある黒髪、丸い目、学校の制服（紺のブレザーにグレーのズボン）、ランドセルまたは学生カバン`
+    : studentGender === 'girl'
+      ? `- 性別: 女の子（保護者指定）
+- 外見ベース: 二つ結びの茶色がかった長い髪、大きな瞳、学校の制服（紺のブレザーにグレーのスカート）、ランドセルまたは学生カバン`
+      : `- 外見（男子「たろう」の場合）: 少しクセのある黒髪、丸い目、学校の制服（紺のブレザーにグレーのズボン）、ランドセルまたは学生カバン
+- 外見（女子「はなこ」の場合）: 二つ結びの茶色がかった長い髪、大きな瞳、学校の制服（紺のブレザーにグレーのスカート）、ランドセルまたは学生カバン`
+}
 - 身長は同学年の平均程度
 - 性格: 明るく素直、「なんで？」が口癖、わかったときにパッと顔が輝く
+${characterNotes ? `- 【最優先】保護者からの追加指定（外見・性格・持ち物などに必ず反映し、characterDesign.student.appearance とすべての imageGenerationPrompt にも英語で反映すること）: ${characterNotes}` : ''}
 
 ■ マスコットキャラクター（任意）
 - その単元に関連する小さなマスコット（例：細胞の単元なら「さいぼうちゃん」）
@@ -76,10 +93,10 @@ ${gradeGuidance}
    - Female teacher (cartoon character, anime style): short black hair, round glasses, white lab coat over light blue blouse, navy skirt, chibi proportions
    - Male student Taro (cartoon character, anime style, chibi): slightly messy black hair, big round expressive eyes, navy school blazer with grey pants
    - Female student Hanako (cartoon character, anime style, chibi): twin-tail brownish long hair, large sparkling eyes, navy school blazer with grey skirt
-3. 各コマの内容: キャラクターの表情・ポーズ・位置、背景、吹き出しの位置とテキスト
+3. 各コマの内容: キャラクターの表情・ポーズ・位置、背景、吹き出しの位置と形（吹き出しの中の文字は指定しない）
 4. 画風指定（必ず明記）: manga style, black and white line art, screentone shading, educational manga for children, cartoon illustration, 2D anime art, safe for work
-5. 重要なポイントは枠で囲む、"IMPORTANT" や "TEST TIP" のラベルを大きな文字で強調
-6. 各コマ内の吹き出しには英語でセリフを書く（日本語のセリフを英訳して吹き出しに入れる）
+5. 重要なポイントは装飾枠・星マーク・集中線などの視覚的な演出で強調する（文字ラベルは使わない）
+6. 【重要】画像内に文字・セリフ・ラベル・効果音文字を描かせる指示を書かないこと。吹き出しやナレーション枠は「空欄のまま描く」前提で位置と形だけを指定する（画像生成AIは日本語の文字を正しく描けないため。セリフ文字の扱いはアプリ側で行う）
 7. 禁止事項: リアルな人体描写、生々しい医学的描写、ホラー要素、暴力表現、性的な要素。あくまで「かわいい教育漫画」の絵柄を守ること
 ${characterImageUrl ? `8. 【重要】キャラクター参照画像: 以下のURLの画像をキャラクターのデザイン参考として使用すること。各コマのキャラクターはこの参照画像のデザインに忠実に描くこと: ${characterImageUrl}` : ''}
 
@@ -97,7 +114,7 @@ ${characterImageUrl ? `8. 【重要】キャラクター参照画像: 以下のU
       "personality": "knowledgeable, patient, encouraging"
     },
     "student": {
-      "name": "たろう",
+      "name": "${studentJsonName}",
       "appearance": "slightly messy black hair, big round eyes, navy school blazer, grey pants, school bag",
       "personality": "curious, cheerful, struggles with studying but determined"
     },
@@ -151,7 +168,8 @@ ${struggle}
 - imageGenerationPromptは必ず「1ページ全体の漫画レイアウト」として英語で書く（300文字以上）
 - 【重要】すべてのimageGenerationPromptの先頭に "Safe educational manga illustration for children's textbook. Cartoon drawing style, G-rated content." を必ず付ける
 - 【重要】すべてのキャラクターは必ず "cartoon character, anime style, chibi manga style" と明記する（リアルな人物描写を避けるため）
-- すべてのページのimageGenerationPromptにキャラクターの外見を毎回必ず含める
+- 【重要】imageGenerationPromptに文字・セリフ・効果音文字を描かせる指示を入れないこと（吹き出しは空欄で描く前提。例: "empty speech bubbles"）
+- すべてのページのimageGenerationPromptにキャラクターの外見を毎回必ず含める${studentName ? `\n- 生徒役の名前は必ず「${studentName}」とすること（characterDesign.student.name も「${studentName}」）` : ''}
 - imageGenerationPromptに性的・暴力的・ホラー的な要素を一切含めないこと
 - すべてのページが完成した学習漫画として成立していること
 - testKeywords には、この漫画で学習する「定期テストに出る重要キーワード」を最低5個リストアップすること`

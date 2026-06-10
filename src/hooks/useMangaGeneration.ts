@@ -14,6 +14,9 @@ export function useMangaGeneration() {
   const grade = useStore((s) => s.grade)
   const subject = useStore((s) => s.subject)
   const characterImageUrl = useStore((s) => s.characterImageUrl)
+  const studentName = useStore((s) => s.studentName)
+  const studentGender = useStore((s) => s.studentGender)
+  const characterNotes = useStore((s) => s.characterNotes)
   const setScript = useStore((s) => s.setScript)
   const setStatus = useStore((s) => s.setStatus)
   const setError = useStore((s) => s.setError)
@@ -25,7 +28,11 @@ export function useMangaGeneration() {
     setError(null)
 
     try {
-      const { systemPrompt, userPrompt } = buildMangaPrompt(unit, struggle, grade, subject, characterImageUrl)
+      const { systemPrompt, userPrompt } = buildMangaPrompt(unit, struggle, grade, subject, characterImageUrl, {
+        studentName,
+        studentGender,
+        characterNotes,
+      })
       const ai = getProvider(provider)
 
       const response = await ai.generate({
@@ -46,7 +53,7 @@ export function useMangaGeneration() {
     } catch (err) {
       setError(toFriendlyErrorMessage(err, '生成中にエラーが発生しました'))
     }
-  }, [unit, struggle, grade, subject, characterImageUrl, apiKey, provider, setScript, setStatus, setError])
+  }, [unit, struggle, grade, subject, characterImageUrl, studentName, studentGender, characterNotes, apiKey, provider, setScript, setStatus, setError])
 
   return { generate }
 }

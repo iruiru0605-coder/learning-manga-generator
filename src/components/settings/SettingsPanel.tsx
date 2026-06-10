@@ -1,5 +1,6 @@
 import { useStore } from '@/store'
 import { providerConfigs } from '@/services/ai/registry'
+import { IMAGE_MODELS } from '@/services/image/gemini'
 import { Button } from '@/components/ui/Button'
 import type { ProviderId } from '@/types'
 
@@ -8,10 +9,12 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const provider = useStore((s) => s.provider)
   const characterImageUrl = useStore((s) => s.characterImageUrl)
   const imageApiKey = useStore((s) => s.imageApiKey)
+  const imageModel = useStore((s) => s.imageModel)
   const setApiKey = useStore((s) => s.setApiKey)
   const setProvider = useStore((s) => s.setProvider)
   const setCharacterImageUrl = useStore((s) => s.setCharacterImageUrl)
   const setImageApiKey = useStore((s) => s.setImageApiKey)
+  const setImageModel = useStore((s) => s.setImageModel)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
@@ -97,6 +100,22 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </a>
         </p>
 
+        <label className="mb-2 mt-3 block text-sm font-medium text-gray-700">
+          画像生成モデル
+        </label>
+        <select
+          className="mb-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          value={imageModel}
+          onChange={(e) => setImageModel(e.target.value)}
+        >
+          <option value={IMAGE_MODELS.standard}>標準: Nano Banana — 約6円/枚・吹き出しは空欄</option>
+          <option value={IMAGE_MODELS.pro}>高品質: Nano Banana Pro — 約20円/枚・日本語セリフ入り</option>
+        </select>
+        <p className="mb-4 text-xs text-gray-400">
+          標準モデルは日本語の文字描画が苦手（文字化けの原因）なため、文字を入れずに生成し、セリフはアプリ上に表示します。
+          Proモデルは日本語のセリフをそのまま画像に描き込めます。
+        </p>
+
         <div className="mb-4 rounded-lg bg-green-50 p-3 text-xs text-green-800">
           <p className="font-medium mb-1">料金の目安（8ページの漫画1作品あたり）</p>
           <table className="w-full mt-1">
@@ -110,6 +129,10 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               <tr>
                 <td>Gemini API (Nano Banana)</td>
                 <td>約47円（$0.039×8枚）</td>
+              </tr>
+              <tr>
+                <td>Gemini API (Nano Banana Pro)</td>
+                <td>約160円（$0.134×8枚）</td>
               </tr>
               <tr>
                 <td>ChatGPT Image2</td>

@@ -21,6 +21,11 @@ export const useStore = create<StoreState>()(
         modelName: state.modelName,
         characterImageUrl: state.characterImageUrl,
         imageApiKey: state.imageApiKey,
+        imageModel: state.imageModel,
+        studentName: state.studentName,
+        studentGender: state.studentGender,
+        characterNotes: state.characterNotes,
+        characterRefImage: state.characterRefImage,
       }),
     }
   )

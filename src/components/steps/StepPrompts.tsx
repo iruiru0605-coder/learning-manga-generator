@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useStore } from '@/store'
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
-import { generateImage, buildCharacterPrompt, type ImageRef } from '@/services/image/gemini'
+import { generateImage, buildCharacterPrompt, IMAGE_MODELS, type ImageRef } from '@/services/image/gemini'
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -30,6 +30,38 @@ function downloadDataUrl(dataUrl: string, filename: string) {
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
+}
+
+function dataUrlToImageRef(dataUrl: string): ImageRef | null {
+  const [header, data] = dataUrl.split(',')
+  if (!data) return null
+  const mimeType = header?.match(/:(.*?);/)?.[1] || 'image/png'
+  return { mimeType, data }
+}
+
+// 標準モデル（Nano Banana）は日本語の文字が化けるため、画像内の文字を全面禁止する
+const NO_TEXT_RULE =
+  '\n\nCRITICAL TEXT RULE: Do NOT render any text, letters, numbers, or writing anywhere in the image. ' +
+  'All speech bubbles and caption boxes must be drawn but left completely EMPTY (blank white inside). ' +
+  'No labels, no sound-effect lettering, no signage, no chalkboard writing. Visual elements only.'
+
+// Pro モデル（Nano Banana Pro）は日本語を描けるため、台本のセリフを正確に描き込ませる
+function buildJapaneseTextRule(page: MangaPage): string {
+  const lines: string[] = []
+  for (const panel of page.panels ?? []) {
+    for (const d of panel.dialogue ?? []) {
+      lines.push(`Panel ${panel.panelNumber} – ${d.speaker} (${d.type === 'thought' ? 'thought bubble' : 'speech bubble'}): 「${d.text}」`)
+    }
+    if (panel.narration) {
+      lines.push(`Panel ${panel.panelNumber} – narration box: ${panel.narration}`)
+    }
+  }
+  if (lines.length === 0) return NO_TEXT_RULE
+  return (
+    '\n\nCRITICAL TEXT RULE: Render the following Japanese text inside the matching panel\'s speech bubbles and boxes, ' +
+    'EXACTLY as written, with correct natural Japanese typography (never invent fake kanji or garbled characters):\n' +
+    lines.join('\n')
+  )
 }
 
 // ─── Character Reference Card ────────────────────────
@@ -129,6 +161,7 @@ function PromptCard({
   pageState,
   onGenerate,
   hasApiKey,
+  textless,
 }: {
   page: MangaPage
   isCopied: boolean
@@ -136,8 +169,21 @@ function PromptCard({
   pageState: PageGenState
   onGenerate: (pageNumber: number) => void
   hasApiKey: boolean
+  textless: boolean
 }) {
   const promptText = page.imageGenerationPrompt || ''
+
+  const dialogueLines = (page.panels ?? []).flatMap((panel) => [
+    ...(panel.dialogue ?? []).map((d, i) => ({
+      key: `${panel.panelNumber}-${i}`,
+      panel: panel.panelNumber,
+      label: d.speaker,
+      text: d.text,
+    })),
+    ...(panel.narration
+      ? [{ key: `${panel.panelNumber}-n`, panel: panel.panelNumber, label: 'ナレーション', text: panel.narration }]
+      : []),
+  ])
 
   return (
     <Card className="overflow-hidden">
@@ -206,6 +252,25 @@ function PromptCard({
 
       <div className="p-4">
         <p className="mb-2 text-xs text-gray-500">{page.summary}</p>
+
+        {dialogueLines.length > 0 && (
+          <details className="mb-3 rounded-lg bg-gray-50 p-3" open={textless && pageState.status === 'done'}>
+            <summary className="cursor-pointer text-xs font-medium text-gray-600">
+              セリフ一覧
+              {textless && '（標準モデルでは吹き出しは空欄で生成されます。この一覧を添えてお使いください）'}
+            </summary>
+            <ul className="mt-2 space-y-1">
+              {dialogueLines.map((line) => (
+                <li key={line.key} className="text-xs text-gray-700">
+                  <span className="mr-1 text-gray-400">コマ{line.panel}</span>
+                  <span className="font-medium">{line.label}</span>
+                  {line.label === 'ナレーション' ? `: ${line.text}` : `「${line.text}」`}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         <div className="rounded-lg bg-gray-900 p-3">
           <pre className="whitespace-pre-wrap text-xs text-green-400 font-mono leading-relaxed max-h-48 overflow-y-auto">
             {promptText || '(画像生成プロンプトは生成されませんでした)'}
@@ -221,6 +286,8 @@ function PromptCard({
 export function StepPrompts() {
   const script = useStore((s) => s.script)
   const imageApiKey = useStore((s) => s.imageApiKey)
+  const imageModel = useStore((s) => s.imageModel)
+  const characterRefImage = useStore((s) => s.characterRefImage)
   const { copiedId, copy } = useCopyToClipboard()
 
   // Character reference generation state
@@ -233,7 +300,9 @@ export function StepPrompts() {
 
   const hasApiKey = !!imageApiKey.trim()
   const totalPages = script?.pages?.length || 0
-  const estimatedCost = totalPages > 0 ? `約${Math.round(totalPages * 5.8)}円` : ''
+  const isProModel = imageModel === IMAGE_MODELS.pro
+  const costPerPage = isProModel ? 20 : 5.8
+  const estimatedCost = totalPages > 0 ? `約${Math.round(totalPages * costPerPage)}円` : ''
 
   // ── Character References ────────────────────────────
 
@@ -271,10 +340,26 @@ export function StepPrompts() {
       setCharStates((prev) => ({ ...prev, [key]: { status: 'generating' } }))
 
       try {
-        const prompt = buildCharacterPrompt(char)
+        let prompt = buildCharacterPrompt(char)
+        let referenceImages: ImageRef[] | undefined
+
+        // 生徒役は保護者がアップロードした参考画像に似せて生成する
+        if (key === 'student' && characterRefImage) {
+          const ref = dataUrlToImageRef(characterRefImage)
+          if (ref) {
+            referenceImages = [ref]
+            prompt +=
+              '\n\nA reference photo/illustration is provided. Design the character to resemble it ' +
+              '(hairstyle, hair color, glasses or accessories, overall vibe) while strictly keeping the ' +
+              'cute chibi manga cartoon style described above. Never draw a realistic portrait of the reference.'
+          }
+        }
+
         const result = await generateImage({
-          prompt,
+          prompt: prompt + NO_TEXT_RULE,
           apiKey: imageApiKey,
+          referenceImages,
+          model: imageModel,
         })
         const dataUrl = `data:${result.mimeType};base64,${result.imageData}`
         setCharStates((prev) => ({ ...prev, [key]: { status: 'done', dataUrl } }))
@@ -283,7 +368,7 @@ export function StepPrompts() {
         setCharStates((prev) => ({ ...prev, [key]: { status: 'error', error: msg } }))
       }
     },
-    [characters, imageApiKey],
+    [characters, imageApiKey, imageModel, characterRefImage],
   )
 
   const handleGenerateAllChars = useCallback(async () => {
@@ -298,9 +383,8 @@ export function StepPrompts() {
     for (const char of characters) {
       const state = charStates[char.key]
       if (state?.status === 'done' && state.dataUrl) {
-        const [header, data] = state.dataUrl.split(',')
-        const mimeType = header?.match(/:(.*?);/)?.[1] || 'image/png'
-        refs.push({ mimeType, data })
+        const ref = dataUrlToImageRef(state.dataUrl)
+        if (ref) refs.push(ref)
       }
     }
     return refs
@@ -317,10 +401,13 @@ export function StepPrompts() {
 
       try {
         const charRefs = getCharRefs()
+        // Pro はセリフを正確に描けるので日本語テキストを渡し、標準は文字なし（空の吹き出し）にする
+        const textRule = imageModel === IMAGE_MODELS.pro ? buildJapaneseTextRule(page) : NO_TEXT_RULE
         const result = await generateImage({
-          prompt: page.imageGenerationPrompt,
+          prompt: page.imageGenerationPrompt + textRule,
           apiKey: imageApiKey,
           referenceImages: charRefs.length > 0 ? charRefs : undefined,
+          model: imageModel,
         })
         const dataUrl = `data:${result.mimeType};base64,${result.imageData}`
         setPageStates((prev) => ({ ...prev, [pageNumber]: { status: 'done', dataUrl } }))
@@ -329,7 +416,7 @@ export function StepPrompts() {
         setPageStates((prev) => ({ ...prev, [pageNumber]: { status: 'error', error: msg } }))
       }
     },
-    [script, imageApiKey, getCharRefs],
+    [script, imageApiKey, imageModel, getCharRefs],
   )
 
   const handleBulkGenerate = useCallback(async () => {
@@ -447,9 +534,9 @@ export function StepPrompts() {
         {/* API status banner */}
         {hasApiKey ? (
           <div className="mb-4 rounded-lg bg-green-50 p-3 text-xs text-green-800 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-medium">Gemini Nano Banana</span>
-            <span>8ページ合計: {estimatedCost}</span>
-            <span>1枚約5.8円</span>
+            <span className="font-medium">{isProModel ? 'Nano Banana Pro（日本語セリフ入り）' : 'Nano Banana（吹き出しは空欄・セリフはアプリに表示）'}</span>
+            <span>{totalPages}ページ合計: {estimatedCost}</span>
+            <span>1枚約{costPerPage}円</span>
             {charGeneratedCount > 0 && (
               <span className="text-green-600">
                 参照画像: {charGeneratedCount}/{characters.length}体
@@ -511,6 +598,7 @@ export function StepPrompts() {
               pageState={pageStates[page.pageNumber] || { status: 'idle' }}
               onGenerate={handleGeneratePage}
               hasApiKey={hasApiKey}
+              textless={!isProModel}
             />
           ))}
         </div>

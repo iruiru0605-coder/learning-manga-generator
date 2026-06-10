@@ -3,6 +3,13 @@
  * Uses the Gemini generateContent endpoint with responseModalities: ["IMAGE", "TEXT"].
  */
 
+export const IMAGE_MODELS = {
+  /** Nano Banana: 安価だが日本語の文字描画が苦手（文字なし運用） */
+  standard: 'gemini-2.5-flash-image',
+  /** Nano Banana Pro: 高価だが日本語を含む文字描画に強い */
+  pro: 'gemini-3-pro-image-preview',
+} as const
+
 export interface ImageRef {
   mimeType: string
   data: string // base64
@@ -12,6 +19,7 @@ export interface ImageGenRequest {
   prompt: string
   apiKey: string
   referenceImages?: ImageRef[]
+  model?: string
 }
 
 export interface ImageGenResponse {
@@ -19,17 +27,18 @@ export interface ImageGenResponse {
   mimeType: string
 }
 
-function getBaseUrl(): string {
+function getBaseUrl(model: string): string {
   if (import.meta.env.DEV) {
-    return '/api/gemini/v1beta/models/gemini-2.5-flash-image:generateContent'
+    return `/api/gemini/v1beta/models/${model}:generateContent`
   }
-  return 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent'
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 }
 
 export async function generateImage(req: ImageGenRequest): Promise<ImageGenResponse> {
+  const model = req.model || IMAGE_MODELS.standard
   const url = import.meta.env.DEV
-    ? getBaseUrl()
-    : `${getBaseUrl()}?key=${encodeURIComponent(req.apiKey)}`
+    ? getBaseUrl(model)
+    : `${getBaseUrl(model)}?key=${encodeURIComponent(req.apiKey)}`
 
   const parts: Record<string, unknown>[] = []
 

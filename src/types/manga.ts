@@ -34,6 +34,15 @@ export interface MangaCharacterDesign {
   mascot?: CharacterDesign
 }
 
+export type StudentGender = 'auto' | 'boy' | 'girl'
+
+/** 保護者が指定する主人公（生徒役）のカスタマイズ */
+export interface CharacterCustom {
+  studentName: string
+  studentGender: StudentGender
+  characterNotes: string
+}
+
 export interface MangaScript {
   title: string
   unitName: string

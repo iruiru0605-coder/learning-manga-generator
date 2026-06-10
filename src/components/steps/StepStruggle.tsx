@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useStore } from '@/store'
 import { useMangaGeneration } from '@/hooks/useMangaGeneration'
 import { Button } from '@/components/ui/Button'
+import { fileToResizedDataUrl } from '@/services/image/resize'
+import type { StudentGender } from '@/types'
 
 interface StepStruggleProps {
   onNext: () => void
@@ -16,7 +18,28 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
   const error = useStore((s) => s.error)
   const apiKey = useStore((s) => s.apiKey)
   const setStruggle = useStore((s) => s.setStruggle)
+  const studentName = useStore((s) => s.studentName)
+  const studentGender = useStore((s) => s.studentGender)
+  const characterNotes = useStore((s) => s.characterNotes)
+  const characterRefImage = useStore((s) => s.characterRefImage)
+  const setStudentName = useStore((s) => s.setStudentName)
+  const setStudentGender = useStore((s) => s.setStudentGender)
+  const setCharacterNotes = useStore((s) => s.setCharacterNotes)
+  const setCharacterRefImage = useStore((s) => s.setCharacterRefImage)
   const { generate } = useMangaGeneration()
+
+  const handleRefImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await fileToResizedDataUrl(file)
+      setCharacterRefImage(dataUrl)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '画像の読み込みに失敗しました')
+    } finally {
+      e.target.value = ''
+    }
+  }
 
   const handleGenerate = async () => {
     if (!apiKey) {
@@ -80,6 +103,79 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
           value={struggle}
           onChange={(e) => setStruggle(e.target.value)}
         />
+
+        <details className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4" open={!!(studentName || characterNotes || characterRefImage)}>
+          <summary className="cursor-pointer text-sm font-medium text-gray-700">
+            🎨 主人公キャラクター設定（任意）— お子さんを漫画の主人公にできます
+          </summary>
+          <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">主人公の名前</label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="例：ゆうと（未入力なら たろう／はなこ）"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">性別</label>
+                <select
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  value={studentGender}
+                  onChange={(e) => setStudentGender(e.target.value as StudentGender)}
+                >
+                  <option value="auto">指定しない</option>
+                  <option value="boy">男の子</option>
+                  <option value="girl">女の子</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">
+                外見・性格のメモ（台本のセリフとキャラクター画像の両方に反映されます）
+              </label>
+              <textarea
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                rows={2}
+                placeholder="例：ポニーテールでメガネ。サッカーが大好きで、いつも犬のぬいぐるみを持っている"
+                value={characterNotes}
+                onChange={(e) => setCharacterNotes(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">
+                参考画像（任意）— お子さんの写真や好きなイラストに似せてキャラクターを生成します
+              </label>
+              {characterRefImage ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={characterRefImage}
+                    alt="キャラクター参考画像"
+                    className="h-20 w-20 rounded-lg border border-gray-200 object-cover"
+                  />
+                  <Button variant="secondary" size="sm" onClick={() => setCharacterRefImage('')}>
+                    削除
+                  </Button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleRefImageUpload}
+                  className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-xs file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                />
+              )}
+              <p className="mt-1 text-xs text-gray-400">
+                画像はあなたのブラウザ内にのみ保存され、キャラクター画像の生成時にGeminiへ参考として送信されます
+              </p>
+            </div>
+          </div>
+        </details>
 
         {error && (
           <div className="mt-3 rounded-lg bg-red-50 p-4 text-sm text-red-700">
