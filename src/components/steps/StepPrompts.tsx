@@ -20,6 +20,17 @@ interface PageGenState {
   error?: string
 }
 
+// ─── Helpers ──────────────────────────────────────────
+
+function downloadDataUrl(dataUrl: string, filename: string) {
+  const a = document.createElement('a')
+  a.href = dataUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 // ─── Character Reference Card ────────────────────────
 
 function CharacterCard({
@@ -41,9 +52,20 @@ function CharacterCard({
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex items-start gap-4">
         {/* Preview or placeholder */}
-        <div className="h-28 w-28 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+        <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 group">
           {state.status === 'done' && state.dataUrl ? (
-            <img src={state.dataUrl} alt={name} className="h-full w-full object-contain" />
+            <>
+              <img src={state.dataUrl} alt={name} className="h-full w-full object-contain" />
+              <button
+                onClick={() => downloadDataUrl(state.dataUrl!, `${name}_character.png`)}
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="画像をダウンロード"
+              >
+                <span className="rounded bg-white px-2 py-1 text-xs font-medium text-gray-900">
+                  ダウンロード
+                </span>
+              </button>
+            </>
           ) : state.status === 'generating' ? (
             <div className="flex h-full items-center justify-center">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
@@ -69,18 +91,29 @@ function CharacterCard({
           )}
         </div>
 
-        <Button
-          variant={state.status === 'done' ? 'secondary' : 'primary'}
-          size="sm"
-          disabled={state.status === 'generating'}
-          onClick={onGenerate}
-        >
-          {state.status === 'generating'
-            ? '生成中...'
-            : state.status === 'done'
-              ? '再生成'
-              : '生成する'}
-        </Button>
+        <div className="flex flex-col gap-1">
+          <Button
+            variant={state.status === 'done' ? 'secondary' : 'primary'}
+            size="sm"
+            disabled={state.status === 'generating'}
+            onClick={onGenerate}
+          >
+            {state.status === 'generating'
+              ? '生成中...'
+              : state.status === 'done'
+                ? '再生成'
+                : '生成する'}
+          </Button>
+          {state.status === 'done' && state.dataUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downloadDataUrl(state.dataUrl!, `${name}_character.png`)}
+            >
+              保存
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -146,18 +179,27 @@ function PromptCard({
       )}
 
       {pageState.status === 'error' && (
-        <div className="bg-red-50 px-4 py-2 text-xs text-red-700">
-          {pageState.error || '画像生成に失敗しました'}
+        <div className="bg-red-50 px-4 py-3 text-xs text-red-700 flex items-center justify-between">
+          <span>{pageState.error || '画像生成に失敗しました'}</span>
+          <Button variant="secondary" size="sm" onClick={() => onGenerate(page.pageNumber)}>
+            再試行
+          </Button>
         </div>
       )}
 
       {pageState.status === 'done' && pageState.dataUrl && (
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 relative group">
           <img
             src={pageState.dataUrl}
             alt={`Page ${page.pageNumber}`}
             className="w-full"
           />
+          <button
+            onClick={() => downloadDataUrl(pageState.dataUrl!, `page_${page.pageNumber}.png`)}
+            className="absolute top-2 right-2 rounded-lg bg-black/60 px-3 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+          >
+            画像を保存
+          </button>
         </div>
       )}
 
@@ -186,6 +228,7 @@ export function StepPrompts() {
   // Page image generation state
   const [pageStates, setPageStates] = useState<Record<number, PageGenState>>({})
   const [isBulkGenerating, setIsBulkGenerating] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState('')
 
   const hasApiKey = !!imageApiKey.trim()
   const totalPages = script?.pages?.length || 0
@@ -291,11 +334,25 @@ export function StepPrompts() {
   const handleBulkGenerate = useCallback(async () => {
     if (!script?.pages) return
     setIsBulkGenerating(true)
+    let done = 0
     for (const page of script.pages) {
+      setBulkProgress(`${page.pageNumber}/${totalPages}`)
       await handleGeneratePage(page.pageNumber)
+      done++
     }
+    setBulkProgress('')
     setIsBulkGenerating(false)
-  }, [script, handleGeneratePage])
+  }, [script, handleGeneratePage, totalPages])
+
+  // ── Bulk download ───────────────────────────────────
+
+  const handleBulkDownload = useCallback(() => {
+    for (const [pageNum, state] of Object.entries(pageStates)) {
+      if (state.status === 'done' && state.dataUrl) {
+        setTimeout(() => downloadDataUrl(state.dataUrl!, `manga_page_${pageNum}.png`), 200 * (Number(pageNum) - 1))
+      }
+    }
+  }, [pageStates])
 
   // ── Bulk copy ───────────────────────────────────────
 
@@ -331,16 +388,34 @@ export function StepPrompts() {
                 先にキャラクター画像を生成すると、全ページで統一されたキャラクターが使われます
               </p>
             </div>
-            {charGeneratedCount < characters.length && (
-              <Button variant="primary" size="sm" onClick={handleGenerateAllChars}>
-                全キャラクターを一括生成
-              </Button>
-            )}
-            {charGeneratedCount === characters.length && (
-              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                全{characters.length}体 生成済み ✓
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {charGeneratedCount === characters.length && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    for (const char of characters) {
+                      const state = charStates[char.key]
+                      if (state?.status === 'done' && state.dataUrl) {
+                        downloadDataUrl(state.dataUrl, `${char.name}_character.png`)
+                      }
+                    }
+                  }}
+                >
+                  全キャラを保存
+                </Button>
+              )}
+              {charGeneratedCount < characters.length && (
+                <Button variant="primary" size="sm" onClick={handleGenerateAllChars}>
+                  全キャラクターを一括生成
+                </Button>
+              )}
+              {charGeneratedCount === characters.length && (
+                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                  全{characters.length}体 生成済み ✓
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -401,16 +476,23 @@ export function StepPrompts() {
             </div>
           )}
           {hasApiKey && (
-            <Button
-              onClick={handleBulkGenerate}
-              variant="primary"
-              size="sm"
-              disabled={isBulkGenerating}
-            >
-              {isBulkGenerating
-                ? `一括生成中... (${generatedCount}/${totalPages})`
-                : `全ページ一括生成（${estimatedCost}）`}
-            </Button>
+            <>
+              <Button
+                onClick={handleBulkGenerate}
+                variant="primary"
+                size="sm"
+                disabled={isBulkGenerating}
+              >
+                {isBulkGenerating
+                  ? `一括生成中... ${bulkProgress} (${generatedCount}/${totalPages})`
+                  : `全ページ一括生成（${estimatedCost}）`}
+              </Button>
+              {generatedCount > 0 && (
+                <Button onClick={handleBulkDownload} variant="secondary" size="sm">
+                  全ページ画像を保存 ({generatedCount}枚)
+                </Button>
+              )}
+            </>
           )}
           <Button onClick={() => copy(bulkPrompt, 'bulk')} variant="secondary" size="sm">
             {copiedId === 'bulk' ? '全コピー済み ✓' : '全プロンプトをまとめてコピー'}
