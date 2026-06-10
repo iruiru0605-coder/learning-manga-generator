@@ -45,8 +45,9 @@ const NO_TEXT_RULE =
   'All speech bubbles and caption boxes must be drawn but left completely EMPTY (blank white inside). ' +
   'No labels, no sound-effect lettering, no signage, no chalkboard writing. Visual elements only.'
 
-// Pro モデル（Nano Banana Pro）は日本語を描けるため、台本のセリフを正確に描き込ませる
-function buildJapaneseTextRule(page: MangaPage): string {
+// 日本語セリフの描き込み指定ブロック。Pro モデルでの生成と、コピペ用プロンプトの両方で使う
+// （セリフがない場合は空文字を返す）
+function buildDialogueTextBlock(page: MangaPage): string {
   const lines: string[] = []
   for (const panel of page.panels ?? []) {
     for (const d of panel.dialogue ?? []) {
@@ -56,7 +57,7 @@ function buildJapaneseTextRule(page: MangaPage): string {
       lines.push(`Panel ${panel.panelNumber} – narration box: ${panel.narration}`)
     }
   }
-  if (lines.length === 0) return NO_TEXT_RULE
+  if (lines.length === 0) return ''
   return (
     '\n\nCRITICAL TEXT RULE: Render the following Japanese text inside the matching panel\'s speech bubbles and boxes, ' +
     'EXACTLY as written, with correct natural Japanese typography (never invent fake kanji or garbled characters):\n' +
@@ -73,6 +74,9 @@ function CharacterCard({
   personality,
   state,
   onGenerate,
+  canGenerate,
+  onCopyPrompt,
+  isCopied,
 }: {
   label: string
   name: string
@@ -80,6 +84,9 @@ function CharacterCard({
   personality: string
   state: CharGenState
   onGenerate: () => void
+  canGenerate: boolean
+  onCopyPrompt: () => void
+  isCopied: boolean
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -125,17 +132,22 @@ function CharacterCard({
         </div>
 
         <div className="flex flex-col gap-1">
-          <Button
-            variant={state.status === 'done' ? 'secondary' : 'primary'}
-            size="sm"
-            disabled={state.status === 'generating'}
-            onClick={onGenerate}
-          >
-            {state.status === 'generating'
-              ? '生成中...'
-              : state.status === 'done'
-                ? '再生成'
-                : '生成する'}
+          {canGenerate && (
+            <Button
+              variant={state.status === 'done' ? 'secondary' : 'primary'}
+              size="sm"
+              disabled={state.status === 'generating'}
+              onClick={onGenerate}
+            >
+              {state.status === 'generating'
+                ? '生成中...'
+                : state.status === 'done'
+                  ? '再生成'
+                  : '生成する'}
+            </Button>
+          )}
+          <Button variant={canGenerate ? 'ghost' : 'secondary'} size="sm" onClick={onCopyPrompt}>
+            {isCopied ? 'コピー済み ✓' : 'プロンプトをコピー'}
           </Button>
           {state.status === 'done' && state.dataUrl && (
             <Button
@@ -172,6 +184,8 @@ function PromptCard({
   textless: boolean
 }) {
   const promptText = page.imageGenerationPrompt || ''
+  // コピペ先（ChatGPT等）でも日本語セリフを描けるよう、コピー時はセリフ指定を含める
+  const copyText = promptText + buildDialogueTextBlock(page)
 
   const dialogueLines = (page.panels ?? []).flatMap((panel) => [
     ...(panel.dialogue ?? []).map((d, i) => ({
@@ -195,7 +209,7 @@ function PromptCard({
           <Button
             variant={isCopied ? 'primary' : 'secondary'}
             size="sm"
-            onClick={() => onCopy(promptText, page.pageNumber.toString())}
+            onClick={() => onCopy(copyText, page.pageNumber.toString())}
           >
             {isCopied ? 'コピー済み ✓' : 'プロンプトをコピー'}
           </Button>
@@ -402,7 +416,8 @@ export function StepPrompts() {
       try {
         const charRefs = getCharRefs()
         // Pro はセリフを正確に描けるので日本語テキストを渡し、標準は文字なし（空の吹き出し）にする
-        const textRule = imageModel === IMAGE_MODELS.pro ? buildJapaneseTextRule(page) : NO_TEXT_RULE
+        const textRule =
+          imageModel === IMAGE_MODELS.pro ? buildDialogueTextBlock(page) || NO_TEXT_RULE : NO_TEXT_RULE
         const result = await generateImage({
           prompt: page.imageGenerationPrompt + textRule,
           apiKey: imageApiKey,
@@ -446,7 +461,7 @@ export function StepPrompts() {
 
   const bulkPrompt =
     script?.pages
-      ?.map((p) => `## ページ${p.pageNumber}: ${p.title}\n${p.imageGenerationPrompt || ''}`)
+      ?.map((p) => `## ページ${p.pageNumber}: ${p.title}\n${(p.imageGenerationPrompt || '') + buildDialogueTextBlock(p)}`)
       .join('\n\n---\n\n') || ''
 
   const generatedCount = Object.values(pageStates).filter((s) => s.status === 'done').length
@@ -467,43 +482,47 @@ export function StepPrompts() {
   return (
     <div className="space-y-6">
       {/* ===== Section 1: Character References ===== */}
-      {characters.length > 0 && hasApiKey && (
+      {characters.length > 0 && (
         <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-gray-900">キャラクター参照画像</h2>
               <p className="text-sm text-gray-500">
-                先にキャラクター画像を生成すると、全ページで統一されたキャラクターが使われます
+                {hasApiKey
+                  ? '先にキャラクター画像を生成すると、全ページで統一されたキャラクターが使われます'
+                  : '各キャラクターのプロンプトをコピーしてChatGPT等で画像を生成し、保存しておきましょう。ページ生成時に毎回その画像を添付するとキャラクターが統一されます'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {charGeneratedCount === characters.length && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    for (const char of characters) {
-                      const state = charStates[char.key]
-                      if (state?.status === 'done' && state.dataUrl) {
-                        downloadDataUrl(state.dataUrl, `${char.name}_character.png`)
+            {hasApiKey && (
+              <div className="flex items-center gap-2">
+                {charGeneratedCount === characters.length && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      for (const char of characters) {
+                        const state = charStates[char.key]
+                        if (state?.status === 'done' && state.dataUrl) {
+                          downloadDataUrl(state.dataUrl, `${char.name}_character.png`)
+                        }
                       }
-                    }
-                  }}
-                >
-                  全キャラを保存
-                </Button>
-              )}
-              {charGeneratedCount < characters.length && (
-                <Button variant="primary" size="sm" onClick={handleGenerateAllChars}>
-                  全キャラクターを一括生成
-                </Button>
-              )}
-              {charGeneratedCount === characters.length && (
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                  全{characters.length}体 生成済み ✓
-                </span>
-              )}
-            </div>
+                    }}
+                  >
+                    全キャラを保存
+                  </Button>
+                )}
+                {charGeneratedCount < characters.length && (
+                  <Button variant="primary" size="sm" onClick={handleGenerateAllChars}>
+                    全キャラクターを一括生成
+                  </Button>
+                )}
+                {charGeneratedCount === characters.length && (
+                  <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                    全{characters.length}体 生成済み ✓
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -516,6 +535,9 @@ export function StepPrompts() {
                 personality={char.personality}
                 state={charStates[char.key] || { status: 'idle' }}
                 onGenerate={() => handleGenerateChar(char.key)}
+                canGenerate={hasApiKey}
+                onCopyPrompt={() => copy(buildCharacterPrompt(char) + NO_TEXT_RULE, `char-${char.key}`)}
+                isCopied={copiedId === `char-${char.key}`}
               />
             ))}
           </div>
@@ -586,6 +608,33 @@ export function StepPrompts() {
             {copiedId === 'bulk' ? '全コピー済み ✓' : '全プロンプトをまとめてコピー'}
           </Button>
         </div>
+
+        {/* Copy-paste workflow guide */}
+        <details className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 p-3" open={!hasApiKey}>
+          <summary className="cursor-pointer text-xs font-bold text-indigo-900">
+            📋 コピペで外部ツール（ChatGPT等）を使う場合：キャラクターを統一する方法
+          </summary>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-xs text-indigo-900">
+            <li>
+              <span className="font-medium">先にキャラクター画像を用意します。</span>
+              Gemini APIキーがあれば上の「キャラクター参照画像」で生成して「全キャラを保存」、
+              なければ各キャラクターの「プロンプトをコピー」をChatGPT等に貼り付けて生成し、画像を保存します
+            </li>
+            <li>
+              <span className="font-medium">ページを生成するたびに、保存したキャラクター画像（2〜3枚）をチャットに添付</span>
+              してから、ページのプロンプトを貼り付けます。「添付した画像のキャラクターで描いて」と一言添えると確実です
+            </li>
+            <li>できるだけ同じチャット内で続けて生成すると、絵柄とキャラクターがより安定します</li>
+            <li>
+              コピーしたプロンプトの末尾には日本語セリフの描き込み指定（CRITICAL TEXT RULE 以下）が含まれています。
+              生成結果の文字が化ける場合はその部分を削除して空欄の吹き出しで生成し、各ページの「セリフ一覧」を添えてください
+            </li>
+            <li>
+              ChatGPT無料プランの画像生成は1日数枚程度の回数制限があります。
+              8ページ作る場合は数日に分けるか、ChatGPT Plus または本ツールのGemini生成をご検討ください
+            </li>
+          </ol>
+        </details>
 
         {/* Page cards */}
         <div className="space-y-4">
