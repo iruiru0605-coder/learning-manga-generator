@@ -1,7 +1,6 @@
 import { useStore } from '@/store'
 import { useMangaGeneration } from '@/hooks/useMangaGeneration'
 import { Button } from '@/components/ui/Button'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface StepStruggleProps {
   onNext: () => void
@@ -23,6 +22,30 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
       return
     }
     await generate()
+  }
+
+  if (status === 'generating') {
+    return (
+      <div className="rounded-xl bg-white p-12 shadow-sm border border-gray-200 text-center">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
+          <svg className="h-10 w-10 animate-bounce text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </div>
+        <h3 className="mb-2 text-lg font-bold text-gray-900">AIが漫画を執筆中...</h3>
+        <p className="mb-4 text-sm text-gray-500">
+          「{unit?.label}」の学習漫画を8ページ分、制作しています
+        </p>
+        <div className="mx-auto max-w-xs">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="h-full animate-pulse rounded-full bg-indigo-500" style={{ width: '60%' }} />
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-gray-400">
+          コマ割り・セリフ・画像プロンプトを生成中... 約20〜30秒かかります
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -55,20 +78,15 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
         />
 
         {error && (
-          <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {status === 'generating' && (
-          <div className="mt-4">
-            <LoadingSpinner />
+          <div className="mt-3 rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            <p className="font-medium mb-1">⚠️ エラーが発生しました</p>
+            <p>{error}</p>
           </div>
         )}
       </div>
 
       <div className="flex justify-end gap-3">
-        <Button onClick={handleGenerate} disabled={!struggle.trim() || status === 'generating'} size="lg" variant="primary">
+        <Button onClick={handleGenerate} disabled={!struggle.trim()} size="lg" variant="primary">
           漫画の台本を生成する
         </Button>
         {canAdvance && (

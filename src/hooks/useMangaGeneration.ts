@@ -2,15 +2,8 @@ import { useCallback } from 'react'
 import { useStore } from '@/store'
 import { buildMangaPrompt } from '@/services/promptBuilder'
 import { getProvider } from '@/services/ai/registry'
+import { extractAndParseJSON } from '@/services/jsonRepair'
 import type { MangaScript } from '@/types'
-
-function cleanJsonResponse(raw: string): string {
-  const cleaned = raw
-    .replace(/```json\s*/gi, '')
-    .replace(/```\s*/g, '')
-    .trim()
-  return cleaned
-}
 
 export function useMangaGeneration() {
   const apiKey = useStore((s) => s.apiKey)
@@ -38,13 +31,13 @@ export function useMangaGeneration() {
         apiKey,
       })
 
-      const jsonStr = cleanJsonResponse(response.content)
-      const script: MangaScript = JSON.parse(jsonStr)
+      const parsed = extractAndParseJSON(response.content)
 
-      if (!script.pages || !Array.isArray(script.pages)) {
-        throw new Error('応答の形式が正しくありません。もう一度お試しください。')
+      if (!parsed.pages || !Array.isArray(parsed.pages)) {
+        throw new Error('生成された台本にページデータが含まれていません。もう一度お試しください。')
       }
 
+      const script = parsed as unknown as MangaScript
       setScript(script)
     } catch (err) {
       const msg = err instanceof Error ? err.message : '生成中にエラーが発生しました'
