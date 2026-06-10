@@ -1,10 +1,12 @@
 import type { AIProvider, GenerationRequest, GenerationResponse, ProviderId } from '@/types'
+import { getApiBaseUrl } from './utils'
 
 export class DeepSeekProvider implements AIProvider {
   id: ProviderId = 'deepseek'
 
   async generate(req: GenerationRequest): Promise<GenerationResponse> {
-    const res = await fetch(req.baseUrl || 'https://api.deepseek.com/v1/chat/completions', {
+    const baseUrl = req.baseUrl || `${getApiBaseUrl('deepseek')}/v1/chat/completions`
+    const res = await fetch(baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

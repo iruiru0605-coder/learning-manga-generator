@@ -1,10 +1,12 @@
 import type { AIProvider, GenerationRequest, GenerationResponse, ProviderId } from '@/types'
+import { getApiBaseUrl } from './utils'
 
 export class AnthropicProvider implements AIProvider {
   id: ProviderId = 'anthropic'
 
   async generate(req: GenerationRequest): Promise<GenerationResponse> {
-    const res = await fetch(req.baseUrl || 'https://api.anthropic.com/v1/messages', {
+    const baseUrl = req.baseUrl || `${getApiBaseUrl('anthropic')}/v1/messages`
+    const res = await fetch(baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

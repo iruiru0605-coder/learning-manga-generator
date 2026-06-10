@@ -1,10 +1,12 @@
 import type { AIProvider, GenerationRequest, GenerationResponse, ProviderId } from '@/types'
+import { getApiBaseUrl } from './utils'
 
 export class OpenAIProvider implements AIProvider {
   id: ProviderId = 'openai'
 
   async generate(req: GenerationRequest): Promise<GenerationResponse> {
-    const res = await fetch(req.baseUrl || 'https://api.openai.com/v1/chat/completions', {
+    const baseUrl = req.baseUrl || `${getApiBaseUrl('openai')}/v1/chat/completions`
+    const res = await fetch(baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
