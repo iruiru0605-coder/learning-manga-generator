@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore } from '@/store'
 import { useMangaGeneration } from '@/hooks/useMangaGeneration'
 import { Button } from '@/components/ui/Button'
@@ -8,6 +9,7 @@ interface StepStruggleProps {
 }
 
 export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
+  const [isGenerating, setIsGenerating] = useState(false)
   const unit = useStore((s) => s.unit)
   const struggle = useStore((s) => s.struggle)
   const status = useStore((s) => s.status)
@@ -21,10 +23,12 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
       alert('先にAPIキーを設定してください（右上の「API設定」ボタン）')
       return
     }
+    setIsGenerating(true)
     await generate()
+    setIsGenerating(false)
   }
 
-  if (status === 'generating') {
+  if (isGenerating || status === 'generating') {
     return (
       <div className="rounded-xl bg-white p-12 shadow-sm border border-gray-200 text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
