@@ -19,7 +19,7 @@ export class DeepSeekProvider implements AIProvider {
           { role: 'user', content: req.userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 6000,
+        max_tokens: 16000,
       }),
     })
 

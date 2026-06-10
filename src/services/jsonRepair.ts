@@ -202,12 +202,37 @@ function salvagePagesJson(text: string): string | null {
     }
   }
 
-  if (end === -1) return null
+  if (end === -1) {
+    // JSON truncated before pages array closed.
+    // Find the last complete page object (depth-1 closing brace)
+    // and close the array there.
+    let lastComplete = -1
+    let d = 0
+    let inS = false
+    let es = false
+    for (let i = 0; i < rest.length; i++) {
+      const ch = rest[i]
+      if (es) { es = false; continue }
+      if (ch === '\\' && inS) { es = true; continue }
+      if (ch === '"') { inS = !inS; continue }
+      if (inS) continue
+      if (ch === '[' || ch === '{') d++
+      else if (ch === ']' || ch === '}') {
+        d--
+        if (d === 1 && ch === '}') lastComplete = i
+      }
+    }
+
+    if (lastComplete === -1) return null
+
+    // Build partial array: everything up to and including last complete page,
+    // then close array and root
+    let partial = rest.slice(0, lastComplete + 1)
+    partial = fixJsonStrings(partial)
+    return `{"pages":${partial}]}`
+  }
 
   let pagesArray = rest.slice(0, end + 1)
-
-  // Fix common issues in the extracted array
-  // 1. Literal newlines in strings
   pagesArray = fixJsonStrings(pagesArray)
 
   return `{"pages":${pagesArray}}`

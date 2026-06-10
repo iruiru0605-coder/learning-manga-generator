@@ -15,7 +15,7 @@ export class AnthropicProvider implements AIProvider {
       },
       body: JSON.stringify({
         model: req.model,
-        max_tokens: 6000,
+        max_tokens: 16000,
         system: req.systemPrompt,
         messages: [{ role: 'user', content: req.userPrompt }],
       }),
