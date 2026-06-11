@@ -8,14 +8,28 @@ import { Button } from '@/components/ui/Button'
 interface StepTextbookProps {
   onNext: () => void
   canAdvance: boolean
+  onShowSample: () => void
 }
 
-export function StepTextbook({ onNext, canAdvance }: StepTextbookProps) {
+export function StepTextbook({ onNext, canAdvance, onShowSample }: StepTextbookProps) {
   const grade = useStore((s) => s.grade)
   const unit = useStore((s) => s.unit)
 
   return (
     <div className="space-y-6">
+      {/* 初めての人向け: APIキーなしで完成イメージを見られる */}
+      <button
+        onClick={onShowSample}
+        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 p-4 text-left ring-1 ring-amber-200 transition-all hover:-translate-y-0.5 hover:shadow-md"
+      >
+        <span className="text-sm text-amber-900">
+          <span className="font-bold">🎁 はじめての方へ:</span> APIキーなしで完成イメージを見られます
+        </span>
+        <span className="rounded-xl bg-white px-3 py-1.5 text-sm font-bold text-amber-700 shadow-sm">
+          サンプルを見る →
+        </span>
+      </button>
+
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">

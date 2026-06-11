@@ -7,11 +7,16 @@ export function buildMangaPrompt(
   subject: Subject | null,
   characterImageUrl: string,
   custom?: CharacterCustom,
+  pageCount = 8,
 ) {
   const gradeLabel = grade?.label ?? '対象学年'
   const subjectLabel = subject?.label ?? '対象教科'
   const level = grade?.level ?? 'middle'
   const gradeYear = grade?.year ?? 1
+
+  // ページ数に応じた構成配分（前半=基礎、中盤=応用、最終=まとめ)
+  const basicEnd = Math.max(1, Math.round(pageCount / 2))
+  const appliedEnd = pageCount - 1
 
   // Grade-specific curriculum guidance
   const gradeGuidance = getGradeGuidance(level, gradeYear, subjectLabel)
@@ -24,7 +29,7 @@ export function buildMangaPrompt(
   const studentJsonName = studentName || defaultStudentName
 
   const systemPrompt = `あなたは教育漫画のプロの漫画家であり、${gradeLabel}の学習指導要領に精通した教育のプロフェッショナルです。
-与えられた「教科書の単元」と「学習者の苦手情報」をもとに、${gradeLabel}の実際の定期テスト・入試で問われる重要ポイントを盛り込んだ学習漫画の台本を8ページ分作成してください。
+与えられた「教科書の単元」と「学習者の苦手情報」をもとに、${gradeLabel}の実際の定期テスト・入試で問われる重要ポイントを盛り込んだ学習漫画の台本を${pageCount}ページ分作成してください。
 
 【最重要：学年に応じた学習内容】
 ${gradeGuidance}
@@ -42,7 +47,7 @@ ${gradeGuidance}
 1. 各ページに明確な「引き」（次のページが気になる仕掛け）を入れる
 2. 先生役と生徒役のキャラクターが対話形式で学ぶ
 3. 難しい概念は具体例や比喩を使ったコマで視覚的に説明する
-4. 4ページ目までは基礎概念の理解、5〜7ページ目はテストに出る応用問題と解法、8ページ目は重要なポイントの総まとめ
+4. ${basicEnd}ページ目までは基礎概念の理解、${basicEnd + 1}〜${appliedEnd}ページ目はテストに出る応用問題と解法、${pageCount}ページ目は重要なポイントの総まとめ
 5. 定期テストで実際に出題されるキーワード・公式・用語を太字や重要枠で強調する
 6. 各コマには効果音（ジャジャーン、ドキドキ、ピコーン 等）を適宜入れる
 7. 学習漫画ならではの「重要ポイント枠」や「公式吹き出し」をコマ内に配置する

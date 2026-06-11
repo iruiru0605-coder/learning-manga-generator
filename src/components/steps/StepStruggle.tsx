@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/store'
 import { useMangaGeneration } from '@/hooks/useMangaGeneration'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +11,21 @@ interface StepStruggleProps {
   onNext: () => void
   canAdvance: boolean
 }
+
+const LOADING_MESSAGES = [
+  '単元の重要ポイントを整理しています…',
+  'コマ割りを考えています…',
+  'キャラクターのセリフを書いています…',
+  '画像生成プロンプトを作っています…',
+  'もうすぐ完成です。仕上げをしています…',
+]
+
+const STRUGGLE_EXAMPLES = [
+  '公式は覚えたけど文章題になると解けない',
+  '言葉の意味がそもそもイメージできない',
+  'やり方はわかるのに計算でよく間違える',
+  '何をどこから覚えればいいか分からない',
+]
 
 export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -34,7 +49,21 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
   const setCharacterNotes = useStore((s) => s.setCharacterNotes)
   const setCharacterRefImage = useStore((s) => s.setCharacterRefImage)
   const setCustomCharacterImage = useStore((s) => s.setCustomCharacterImage)
+  const pageCount = useStore((s) => s.pageCount)
+  const setPageCount = useStore((s) => s.setPageCount)
   const { generate } = useMangaGeneration()
+
+  const generating = isGenerating || status === 'generating'
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!generating) {
+      setElapsed(0)
+      return
+    }
+    const timer = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(timer)
+  }, [generating])
 
   // 名前・性別・メモ（＋参考画像）から、漫画スタイルの主人公キャラをその場で生成する
   const handleCreateCharacter = async () => {
@@ -99,26 +128,26 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
     setIsGenerating(false)
   }
 
-  if (isGenerating || status === 'generating') {
+  if (generating) {
+    const loadingMsg = LOADING_MESSAGES[Math.min(Math.floor(elapsed / 7), LOADING_MESSAGES.length - 1)]
     return (
       <div className="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-gray-900/5">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-violet-100">
           <svg className="h-10 w-10 animate-bounce text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         </div>
-        <h3 className="mb-2 text-lg font-bold text-gray-900">AIが漫画を執筆中...</h3>
+        <h3 className="font-display mb-2 text-lg font-extrabold text-gray-900">AIが漫画を執筆中…</h3>
         <p className="mb-4 text-sm text-gray-500">
-          「{unit?.label}」の学習漫画を8ページ分、制作しています
+          「{unit?.label}」の学習漫画を{pageCount}ページ分、制作しています
         </p>
         <div className="mx-auto max-w-xs">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full animate-pulse rounded-full bg-indigo-500" style={{ width: '60%' }} />
+            <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: '60%' }} />
           </div>
         </div>
-        <p className="mt-3 text-xs text-gray-400">
-          コマ割り・セリフ・画像プロンプトを生成中... 約20〜30秒かかります
-        </p>
+        <p className="mt-3 text-sm font-medium text-indigo-600">{loadingMsg}</p>
+        <p className="mt-1 text-xs text-gray-400">{elapsed}秒経過 ／ ふつう20〜40秒で完成します</p>
       </div>
     )
   }
@@ -150,12 +179,37 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
           </p>
         </div>
 
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {STRUGGLE_EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setStruggle(ex)}
+              className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-100 transition-colors hover:bg-indigo-100"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+
         <textarea
           className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[120px]"
           placeholder="例：分数の足し算で、分母が違うときにどうすればいいかわかりません。通分の考え方がピンときません..."
           value={struggle}
           onChange={(e) => setStruggle(e.target.value)}
         />
+
+        <div className="mt-4 flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-600">📄 漫画のページ数</label>
+          <select
+            className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            value={pageCount}
+            onChange={(e) => setPageCount(Number(e.target.value))}
+          >
+            <option value={4}>4ページ（短め・さくっと）</option>
+            <option value={8}>8ページ（標準）</option>
+            <option value={12}>12ページ（じっくり）</option>
+          </select>
+        </div>
 
         <details className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4" open={!!(studentName || characterNotes || characterRefImage)}>
           <summary className="cursor-pointer text-sm font-medium text-gray-700">

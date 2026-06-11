@@ -7,14 +7,25 @@ import { StepStruggle } from '@/components/steps/StepStruggle'
 import { StepScript } from '@/components/steps/StepScript'
 import { StepPrompts } from '@/components/steps/StepPrompts'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
+import { sampleScript } from '@/data/sampleScript'
 
 export function AppShell() {
-  const [step, setStep] = useState(1)
-  const [maxReached, setMaxReached] = useState(1)
+  // リロード後も作業の続きから再開できるよう、保存済みの進捗から開始位置を決める
+  const [step, setStep] = useState(() => (useStore.getState().script ? 3 : useStore.getState().unit ? 2 : 1))
+  const [maxReached, setMaxReached] = useState(() =>
+    useStore.getState().script ? 4 : useStore.getState().unit ? 2 : 1,
+  )
   const [showSettings, setShowSettings] = useState(false)
 
   const unit = useStore((s) => s.unit)
   const script = useStore((s) => s.script)
+  const setScript = useStore((s) => s.setScript)
+
+  const handleShowSample = () => {
+    setScript(sampleScript)
+    setStep(3)
+    setMaxReached(4)
+  }
 
   const goTo = (s: number) => {
     if (s <= maxReached) setStep(s)
@@ -43,6 +54,7 @@ export function AppShell() {
           <StepTextbook
             onNext={handleNext}
             canAdvance={canAdvanceFrom1}
+            onShowSample={handleShowSample}
           />
         )}
         {step === 2 && (

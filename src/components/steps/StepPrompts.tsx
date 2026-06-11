@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useStore } from '@/store'
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
 import { generateImage, buildCharacterPrompt, IMAGE_MODELS, NO_TEXT_RULE, dataUrlToImageRef, type ImageRef } from '@/services/image/gemini'
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
+import { idbSetImage, idbGetAllImages } from '@/services/imageStore'
+import { PrintView } from '@/components/print/PrintView'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import type { MangaPage } from '@/types'
@@ -308,6 +310,40 @@ export function StepPrompts() {
   const [pageStates, setPageStates] = useState<Record<number, PageGenState>>({})
   const [isBulkGenerating, setIsBulkGenerating] = useState(false)
   const [bulkProgress, setBulkProgress] = useState('')
+  const bulkCancelRef = useRef(false)
+  const [showPrint, setShowPrint] = useState(false)
+
+  // IndexedDB に保存済みの生成画像を復元する（リロード・ステップ移動しても消えない）
+  useEffect(() => {
+    idbGetAllImages()
+      .then((all) => {
+        setPageStates((prev) => {
+          const next = { ...prev }
+          for (const [k, v] of Object.entries(all)) {
+            if (k.startsWith('page-')) {
+              const num = Number(k.slice(5))
+              if (!Number.isNaN(num) && next[num]?.status !== 'done') {
+                next[num] = { status: 'done', dataUrl: v }
+              }
+            }
+          }
+          return next
+        })
+        setCharStates((prev) => {
+          const next = { ...prev }
+          for (const [k, v] of Object.entries(all)) {
+            if (k.startsWith('char-')) {
+              const key = k.slice(5)
+              if (next[key]?.status !== 'done') {
+                next[key] = { status: 'done', dataUrl: v }
+              }
+            }
+          }
+          return next
+        })
+      })
+      .catch(() => {})
+  }, [])
 
   const hasApiKey = !!imageApiKey.trim()
   const totalPages = script?.pages?.length || 0
@@ -374,6 +410,7 @@ export function StepPrompts() {
         })
         const dataUrl = `data:${result.mimeType};base64,${result.imageData}`
         setCharStates((prev) => ({ ...prev, [key]: { status: 'done', dataUrl } }))
+        idbSetImage(`char-${key}`, dataUrl).catch(() => {})
       } catch (err) {
         const msg = toFriendlyErrorMessage(err, '生成に失敗しました')
         setCharStates((prev) => ({ ...prev, [key]: { status: 'error', error: msg } }))
@@ -427,6 +464,7 @@ export function StepPrompts() {
         })
         const dataUrl = `data:${result.mimeType};base64,${result.imageData}`
         setPageStates((prev) => ({ ...prev, [pageNumber]: { status: 'done', dataUrl } }))
+        idbSetImage(`page-${pageNumber}`, dataUrl).catch(() => {})
       } catch (err) {
         const msg = toFriendlyErrorMessage(err, '画像生成に失敗しました')
         setPageStates((prev) => ({ ...prev, [pageNumber]: { status: 'error', error: msg } }))
@@ -438,15 +476,19 @@ export function StepPrompts() {
   const handleBulkGenerate = useCallback(async () => {
     if (!script?.pages) return
     setIsBulkGenerating(true)
-    let done = 0
+    bulkCancelRef.current = false
     for (const page of script.pages) {
+      if (bulkCancelRef.current) break
       setBulkProgress(`${page.pageNumber}/${totalPages}`)
       await handleGeneratePage(page.pageNumber)
-      done++
     }
     setBulkProgress('')
     setIsBulkGenerating(false)
   }, [script, handleGeneratePage, totalPages])
+
+  const handleBulkCancel = useCallback(() => {
+    bulkCancelRef.current = true
+  }, [])
 
   // ── Bulk download ───────────────────────────────────
 
@@ -486,6 +528,7 @@ export function StepPrompts() {
 
   return (
     <div className="space-y-6">
+      {showPrint && <PrintView script={script} onClose={() => setShowPrint(false)} />}
       {/* ===== Section 1: Character References ===== */}
       {characters.length > 0 && (
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
@@ -614,6 +657,11 @@ export function StepPrompts() {
                   ? `一括生成中... ${bulkProgress} (${generatedCount}/${totalPages})`
                   : `全ページ一括生成（${estimatedCost}）`}
               </Button>
+              {isBulkGenerating && (
+                <Button onClick={handleBulkCancel} variant="secondary" size="sm">
+                  ⏸ 中止
+                </Button>
+              )}
               {generatedCount > 0 && (
                 <Button onClick={handleBulkDownload} variant="secondary" size="sm">
                   全ページ画像を保存 ({generatedCount}枚)
@@ -623,6 +671,9 @@ export function StepPrompts() {
           )}
           <Button onClick={() => copy(bulkPrompt, 'bulk')} variant="secondary" size="sm">
             {copiedId === 'bulk' ? '全コピー済み ✓' : '全プロンプトをまとめてコピー'}
+          </Button>
+          <Button onClick={() => setShowPrint(true)} variant="secondary" size="sm">
+            📖 本にする（印刷 / PDF）
           </Button>
         </div>
 

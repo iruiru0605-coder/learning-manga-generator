@@ -2,6 +2,7 @@ const API_URLS: Record<string, string> = {
   deepseek: 'https://api.deepseek.com',
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
+  gemini: 'https://generativelanguage.googleapis.com',
 }
 
 export function getApiBaseUrl(provider: string): string {

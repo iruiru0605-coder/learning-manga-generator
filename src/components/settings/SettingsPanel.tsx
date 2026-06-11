@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useStore } from '@/store'
 import { providerConfigs } from '@/services/ai/registry'
 import { IMAGE_MODELS } from '@/services/image/gemini'
@@ -15,6 +16,14 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const setCharacterImageUrl = useStore((s) => s.setCharacterImageUrl)
   const setImageApiKey = useStore((s) => s.setImageApiKey)
   const setImageModel = useStore((s) => s.setImageModel)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -56,24 +65,42 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <input
           type="password"
           className="mb-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          placeholder="sk-..."
+          placeholder={provider === 'gemini' ? 'AIza...' : 'sk-...'}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
         />
+        {provider === 'gemini' && imageApiKey && apiKey !== imageApiKey && (
+          <button
+            className="mb-1 text-xs font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+            onClick={() => setApiKey(imageApiKey)}
+          >
+            ↓で設定済みの画像生成用Geminiキーをこちらにも使う
+          </button>
+        )}
         <p className="mb-4 text-xs text-gray-400">
           APIキーはあなたのブラウザにのみ保存され、外部に送信されることはありません
         </p>
 
         <div className="mb-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-          <strong>おすすめ:</strong> DeepSeek V4 は1回の生成が約0.0035ドル（約0.5円）で最も安価です。
+          <strong>おすすめ:</strong> Gemini は無料枠があり、画像生成と同じキー1本で台本まで作れます（
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            キーを取得 →
+          </a>
+          ）。DeepSeek は1回約0.5円と最安ですが、新規アカウントは少額のチャージが必要です（
           <a
             href="https://platform.deepseek.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-1 underline"
+            className="underline"
           >
-            APIキーを取得 →
+            こちら →
           </a>
+          ）。
         </div>
 
         <hr className="mb-4 border-gray-200" />

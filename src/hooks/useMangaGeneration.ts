@@ -4,6 +4,7 @@ import { buildMangaPrompt } from '@/services/promptBuilder'
 import { getProvider, getDefaultModel } from '@/services/ai/registry'
 import { extractAndParseJSON } from '@/services/jsonRepair'
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
+import { idbClearPageImages } from '@/services/imageStore'
 import type { MangaScript } from '@/types'
 
 export function useMangaGeneration() {
@@ -17,9 +18,11 @@ export function useMangaGeneration() {
   const studentName = useStore((s) => s.studentName)
   const studentGender = useStore((s) => s.studentGender)
   const characterNotes = useStore((s) => s.characterNotes)
+  const pageCount = useStore((s) => s.pageCount)
   const setScript = useStore((s) => s.setScript)
   const setStatus = useStore((s) => s.setStatus)
   const setError = useStore((s) => s.setError)
+  const setLastUsage = useStore((s) => s.setLastUsage)
 
   const generate = useCallback(async () => {
     if (!unit || !struggle.trim()) return
@@ -32,7 +35,7 @@ export function useMangaGeneration() {
         studentName,
         studentGender,
         characterNotes,
-      })
+      }, pageCount)
       const ai = getProvider(provider)
 
       const response = await ai.generate({
@@ -48,12 +51,19 @@ export function useMangaGeneration() {
         throw new Error('生成された台本にページデータが含まれていません。もう一度お試しください。')
       }
 
+      if (response.usage) {
+        setLastUsage({ ...response.usage, providerId: provider })
+      }
+
+      // 古い台本のページ画像が新しい台本に紛れ込まないように消す
+      await idbClearPageImages().catch(() => {})
+
       const script = parsed as unknown as MangaScript
       setScript(script)
     } catch (err) {
       setError(toFriendlyErrorMessage(err, '生成中にエラーが発生しました'))
     }
-  }, [unit, struggle, grade, subject, characterImageUrl, studentName, studentGender, characterNotes, apiKey, provider, setScript, setStatus, setError])
+  }, [unit, struggle, grade, subject, characterImageUrl, studentName, studentGender, characterNotes, pageCount, apiKey, provider, setScript, setStatus, setError, setLastUsage])
 
   return { generate }
 }

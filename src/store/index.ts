@@ -27,6 +27,15 @@ export const useStore = create<StoreState>()(
         characterNotes: state.characterNotes,
         characterRefImage: state.characterRefImage,
         customCharacterImage: state.customCharacterImage,
+        pageCount: state.pageCount,
+        // 作業内容もリロードで消えないように永続化する
+        grade: state.grade,
+        subject: state.subject,
+        textbook: state.textbook,
+        unit: state.unit,
+        struggle: state.struggle,
+        script: state.script,
+        lastUsage: state.lastUsage,
       }),
     }
   )

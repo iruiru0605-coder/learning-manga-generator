@@ -15,6 +15,8 @@ export interface SettingsSlice {
   characterRefImage: string
   /** その場で生成したオリジナル主人公キャラ画像（漫画スタイル・縮小済みdataURL） */
   customCharacterImage: string
+  /** 漫画のページ数（4/8/12） */
+  pageCount: number
   setApiKey: (key: string) => void
   setProvider: (p: ProviderId) => void
   setModelName: (m: string) => void
@@ -26,12 +28,14 @@ export interface SettingsSlice {
   setCharacterNotes: (notes: string) => void
   setCharacterRefImage: (dataUrl: string) => void
   setCustomCharacterImage: (dataUrl: string) => void
+  setPageCount: (n: number) => void
 }
 
 export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   apiKey: '',
-  provider: 'deepseek',
-  modelName: 'deepseek-chat',
+  // 無料枠があり画像生成と同じキーで使える Gemini を初期値にする
+  provider: 'gemini',
+  modelName: 'gemini-2.5-flash',
   characterImageUrl: '',
   imageApiKey: '',
   imageModel: IMAGE_MODELS.standard,
@@ -40,6 +44,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   characterNotes: '',
   characterRefImage: '',
   customCharacterImage: '',
+  pageCount: 8,
   setApiKey: (apiKey) => set({ apiKey }),
   setProvider: (provider) => set({ provider }),
   setModelName: (modelName) => set({ modelName }),
@@ -51,4 +56,5 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   setCharacterNotes: (characterNotes) => set({ characterNotes }),
   setCharacterRefImage: (characterRefImage) => set({ characterRefImage }),
   setCustomCharacterImage: (customCharacterImage) => set({ customCharacterImage }),
+  setPageCount: (pageCount) => set({ pageCount }),
 })

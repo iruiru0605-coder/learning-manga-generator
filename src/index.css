@@ -38,3 +38,29 @@ body {
   background-clip: text;
   color: transparent;
 }
+
+/* 印刷時: 印刷ビュー（.print-area）だけを出力する */
+@media print {
+  body {
+    background: white !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .print-page {
+    break-after: page;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
