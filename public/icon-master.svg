@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <!-- 開いた本 -->
+  <path d="M256 168 C 216 140, 152 136, 116 144 C 104 147, 96 156, 96 168 L 96 344 C 96 356, 106 364, 118 361 C 154 353, 216 357, 256 384 C 296 357, 358 353, 394 361 C 406 364, 416 356, 416 344 L 416 168 C 416 156, 408 147, 396 144 C 360 136, 296 140, 256 168 Z" fill="#ffffff" opacity="0.96"/>
+  <path d="M256 176 L 256 380" stroke="#c7d2fe" stroke-width="10" stroke-linecap="round"/>
+  <!-- 本文の行 -->
+  <g stroke="#a5b4fc" stroke-width="10" stroke-linecap="round">
+    <path d="M136 200 L 224 192"/>
+    <path d="M136 236 L 224 230"/>
+    <path d="M136 272 L 224 268"/>
+    <path d="M288 192 L 376 200"/>
+    <path d="M288 230 L 376 236"/>
+  </g>
+  <!-- 吹き出し（漫画らしさ） -->
+  <g>
+    <circle cx="362" cy="296" r="36" fill="#fbbf24"/>
+    <path d="M340 324 L 326 350 L 360 332 Z" fill="#fbbf24"/>
+    <path d="M348 296 L 358 306 L 378 284" stroke="#78350f" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
