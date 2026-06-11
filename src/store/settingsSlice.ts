@@ -13,6 +13,8 @@ export interface SettingsSlice {
   studentGender: StudentGender
   characterNotes: string
   characterRefImage: string
+  /** その場で生成したオリジナル主人公キャラ画像（漫画スタイル・縮小済みdataURL） */
+  customCharacterImage: string
   setApiKey: (key: string) => void
   setProvider: (p: ProviderId) => void
   setModelName: (m: string) => void
@@ -23,6 +25,7 @@ export interface SettingsSlice {
   setStudentGender: (g: StudentGender) => void
   setCharacterNotes: (notes: string) => void
   setCharacterRefImage: (dataUrl: string) => void
+  setCustomCharacterImage: (dataUrl: string) => void
 }
 
 export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
@@ -36,6 +39,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   studentGender: 'auto',
   characterNotes: '',
   characterRefImage: '',
+  customCharacterImage: '',
   setApiKey: (apiKey) => set({ apiKey }),
   setProvider: (provider) => set({ provider }),
   setModelName: (modelName) => set({ modelName }),
@@ -46,4 +50,5 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   setStudentGender: (studentGender) => set({ studentGender }),
   setCharacterNotes: (characterNotes) => set({ characterNotes }),
   setCharacterRefImage: (characterRefImage) => set({ characterRefImage }),
+  setCustomCharacterImage: (customCharacterImage) => set({ customCharacterImage }),
 })

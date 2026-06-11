@@ -27,6 +27,25 @@ export interface ImageGenResponse {
   mimeType: string
 }
 
+/**
+ * 画像内テキストの全面禁止ルール。
+ * プロンプトの「先頭」に置くこと — 台本側プロンプトに旧仕様のセリフ描画指示が
+ * 含まれていても、これで明示的に無効化する。
+ */
+export const NO_TEXT_RULE =
+  'CRITICAL TEXT POLICY — THIS RULE OVERRIDES EVERYTHING ELSE IN THIS PROMPT: ' +
+  'Do NOT render any text, letters, numbers, or writing anywhere in the image. ' +
+  'If any part of this prompt mentions dialogue text, speech bubble contents, labels, captions, sound effects, or chalkboard writing, ' +
+  'IGNORE those words completely and draw the speech bubbles / boxes / signs EMPTY (blank white inside) instead. ' +
+  'Speech bubbles must be drawn as shapes only, with nothing written inside them. Visual elements only.'
+
+export function dataUrlToImageRef(dataUrl: string): ImageRef | null {
+  const [header, data] = dataUrl.split(',')
+  if (!data) return null
+  const mimeType = header?.match(/:(.*?);/)?.[1] || 'image/png'
+  return { mimeType, data }
+}
+
 function getBaseUrl(model: string): string {
   if (import.meta.env.DEV) {
     return `/api/gemini/v1beta/models/${model}:generateContent`

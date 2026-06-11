@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useStore } from '@/store'
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
-import { generateImage, buildCharacterPrompt, IMAGE_MODELS, type ImageRef } from '@/services/image/gemini'
+import { generateImage, buildCharacterPrompt, IMAGE_MODELS, NO_TEXT_RULE, dataUrlToImageRef, type ImageRef } from '@/services/image/gemini'
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -32,19 +32,6 @@ function downloadDataUrl(dataUrl: string, filename: string) {
   document.body.removeChild(a)
 }
 
-function dataUrlToImageRef(dataUrl: string): ImageRef | null {
-  const [header, data] = dataUrl.split(',')
-  if (!data) return null
-  const mimeType = header?.match(/:(.*?);/)?.[1] || 'image/png'
-  return { mimeType, data }
-}
-
-// 標準モデル（Nano Banana）は日本語の文字が化けるため、画像内の文字を全面禁止する
-const NO_TEXT_RULE =
-  '\n\nCRITICAL TEXT RULE: Do NOT render any text, letters, numbers, or writing anywhere in the image. ' +
-  'All speech bubbles and caption boxes must be drawn but left completely EMPTY (blank white inside). ' +
-  'No labels, no sound-effect lettering, no signage, no chalkboard writing. Visual elements only.'
-
 // 日本語セリフの描き込み指定ブロック。Pro モデルでの生成と、コピペ用プロンプトの両方で使う
 // （セリフがない場合は空文字を返す）
 function buildDialogueTextBlock(page: MangaPage): string {
@@ -59,8 +46,9 @@ function buildDialogueTextBlock(page: MangaPage): string {
   }
   if (lines.length === 0) return ''
   return (
-    '\n\nCRITICAL TEXT RULE: Render the following Japanese text inside the matching panel\'s speech bubbles and boxes, ' +
-    'EXACTLY as written, with correct natural Japanese typography (never invent fake kanji or garbled characters):\n' +
+    'CRITICAL TEXT POLICY — THIS RULE OVERRIDES ANY OTHER TEXT OR DIALOGUE INSTRUCTIONS ELSEWHERE IN THIS PROMPT: ' +
+    'Render ONLY the following Japanese text inside the matching panel\'s speech bubbles and boxes, EXACTLY as written, ' +
+    'with correct natural Japanese typography. Never invent fake kanji, never translate to English, never add any other text:\n' +
     lines.join('\n')
   )
 }
@@ -185,7 +173,8 @@ function PromptCard({
 }) {
   const promptText = page.imageGenerationPrompt || ''
   // コピペ先（ChatGPT等）でも日本語セリフを描けるよう、コピー時はセリフ指定を含める
-  const copyText = promptText + buildDialogueTextBlock(page)
+  const dialogueBlock = buildDialogueTextBlock(page)
+  const copyText = dialogueBlock ? `${promptText}\n\n${dialogueBlock}` : promptText
 
   const dialogueLines = (page.panels ?? []).flatMap((panel) => [
     ...(panel.dialogue ?? []).map((d, i) => ({
@@ -302,10 +291,18 @@ export function StepPrompts() {
   const imageApiKey = useStore((s) => s.imageApiKey)
   const imageModel = useStore((s) => s.imageModel)
   const characterRefImage = useStore((s) => s.characterRefImage)
+  const customCharacterImage = useStore((s) => s.customCharacterImage)
   const { copiedId, copy } = useCopyToClipboard()
 
   // Character reference generation state
-  const [charStates, setCharStates] = useState<Record<string, CharGenState>>({})
+  // ステップ2でその場生成したオリジナル主人公キャラがあれば、生徒役の参照画像として最初からセットする
+  const [charStates, setCharStates] = useState<Record<string, CharGenState>>(() => {
+    const initial: Record<string, CharGenState> = {}
+    if (customCharacterImage) {
+      initial.student = { status: 'done', dataUrl: customCharacterImage }
+    }
+    return initial
+  })
 
   // Page image generation state
   const [pageStates, setPageStates] = useState<Record<number, PageGenState>>({})
@@ -370,7 +367,7 @@ export function StepPrompts() {
         }
 
         const result = await generateImage({
-          prompt: prompt + NO_TEXT_RULE,
+          prompt: `${NO_TEXT_RULE}\n\n${prompt}`,
           apiKey: imageApiKey,
           referenceImages,
           model: imageModel,
@@ -415,11 +412,15 @@ export function StepPrompts() {
 
       try {
         const charRefs = getCharRefs()
+        // テキストポリシーは「先頭」に置いて台本プロンプト内の古いセリフ指示を上書きする。
         // Pro はセリフを正確に描けるので日本語テキストを渡し、標準は文字なし（空の吹き出し）にする
-        const textRule =
-          imageModel === IMAGE_MODELS.pro ? buildDialogueTextBlock(page) || NO_TEXT_RULE : NO_TEXT_RULE
+        const base = page.imageGenerationPrompt
+        const jpBlock = imageModel === IMAGE_MODELS.pro ? buildDialogueTextBlock(page) : ''
+        const prompt = jpBlock
+          ? `${jpBlock}\n\n${base}\n\nREMINDER: Render ONLY the Japanese text listed at the top of this prompt. Any other dialogue or text content mentioned above is void.`
+          : `${NO_TEXT_RULE}\n\n${base}\n\nREMINDER: All speech bubbles and boxes must be completely EMPTY. No letters, words, or labels anywhere in the image.`
         const result = await generateImage({
-          prompt: page.imageGenerationPrompt + textRule,
+          prompt,
           apiKey: imageApiKey,
           referenceImages: charRefs.length > 0 ? charRefs : undefined,
           model: imageModel,
@@ -461,7 +462,11 @@ export function StepPrompts() {
 
   const bulkPrompt =
     script?.pages
-      ?.map((p) => `## ページ${p.pageNumber}: ${p.title}\n${(p.imageGenerationPrompt || '') + buildDialogueTextBlock(p)}`)
+      ?.map((p) => {
+        const block = buildDialogueTextBlock(p)
+        const body = block ? `${p.imageGenerationPrompt || ''}\n\n${block}` : p.imageGenerationPrompt || ''
+        return `## ページ${p.pageNumber}: ${p.title}\n${body}`
+      })
       .join('\n\n---\n\n') || ''
 
   const generatedCount = Object.values(pageStates).filter((s) => s.status === 'done').length
@@ -536,7 +541,7 @@ export function StepPrompts() {
                 state={charStates[char.key] || { status: 'idle' }}
                 onGenerate={() => handleGenerateChar(char.key)}
                 canGenerate={hasApiKey}
-                onCopyPrompt={() => copy(buildCharacterPrompt(char) + NO_TEXT_RULE, `char-${char.key}`)}
+                onCopyPrompt={() => copy(`${NO_TEXT_RULE}\n\n${buildCharacterPrompt(char)}`, `char-${char.key}`)}
                 isCopied={copiedId === `char-${char.key}`}
               />
             ))}

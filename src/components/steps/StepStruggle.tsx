@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useStore } from '@/store'
 import { useMangaGeneration } from '@/hooks/useMangaGeneration'
 import { Button } from '@/components/ui/Button'
-import { fileToResizedDataUrl } from '@/services/image/resize'
+import { fileToResizedDataUrl, dataUrlToResizedDataUrl } from '@/services/image/resize'
+import { generateImage, buildCharacterPrompt, NO_TEXT_RULE, dataUrlToImageRef, type ImageRef } from '@/services/image/gemini'
+import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import type { StudentGender } from '@/types'
 
 interface StepStruggleProps {
@@ -12,6 +14,8 @@ interface StepStruggleProps {
 
 export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isCreatingChar, setIsCreatingChar] = useState(false)
+  const [charCreateError, setCharCreateError] = useState<string | null>(null)
   const unit = useStore((s) => s.unit)
   const struggle = useStore((s) => s.struggle)
   const status = useStore((s) => s.status)
@@ -22,11 +26,55 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
   const studentGender = useStore((s) => s.studentGender)
   const characterNotes = useStore((s) => s.characterNotes)
   const characterRefImage = useStore((s) => s.characterRefImage)
+  const customCharacterImage = useStore((s) => s.customCharacterImage)
+  const imageApiKey = useStore((s) => s.imageApiKey)
+  const imageModel = useStore((s) => s.imageModel)
   const setStudentName = useStore((s) => s.setStudentName)
   const setStudentGender = useStore((s) => s.setStudentGender)
   const setCharacterNotes = useStore((s) => s.setCharacterNotes)
   const setCharacterRefImage = useStore((s) => s.setCharacterRefImage)
+  const setCustomCharacterImage = useStore((s) => s.setCustomCharacterImage)
   const { generate } = useMangaGeneration()
+
+  // 名前・性別・メモ（＋参考画像）から、漫画スタイルの主人公キャラをその場で生成する
+  const handleCreateCharacter = async () => {
+    if (!imageApiKey) return
+    setIsCreatingChar(true)
+    setCharCreateError(null)
+    try {
+      const genderDesc =
+        studentGender === 'girl'
+          ? 'Japanese girl student'
+          : studentGender === 'boy'
+            ? 'Japanese boy student'
+            : 'Japanese student'
+      let prompt = `${NO_TEXT_RULE}\n\n${buildCharacterPrompt({
+        name: studentName.trim() || '主人公',
+        role: 'Student protagonist of an educational manga',
+        appearance: `${genderDesc} in school uniform. Additional traits specified by the parent (in Japanese, follow them faithfully): ${characterNotes.trim() || '明るく元気な子ども'}`,
+        personality: '明るく素直で好奇心旺盛',
+      })}`
+      let referenceImages: ImageRef[] | undefined
+      if (characterRefImage) {
+        const ref = dataUrlToImageRef(characterRefImage)
+        if (ref) {
+          referenceImages = [ref]
+          prompt +=
+            '\n\nA reference photo/illustration is provided. Design the character to resemble it ' +
+            '(hairstyle, hair color, glasses or accessories, overall vibe) while strictly keeping the ' +
+            'cute chibi manga cartoon style. Never draw a realistic portrait of the reference.'
+        }
+      }
+      const result = await generateImage({ prompt, apiKey: imageApiKey, referenceImages, model: imageModel })
+      // localStorageに保存できるサイズへ縮小してから保持する
+      const resized = await dataUrlToResizedDataUrl(`data:${result.mimeType};base64,${result.imageData}`)
+      setCustomCharacterImage(resized)
+    } catch (err) {
+      setCharCreateError(toFriendlyErrorMessage(err, 'キャラクター画像の生成に失敗しました'))
+    } finally {
+      setIsCreatingChar(false)
+    }
+  }
 
   const handleRefImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -173,6 +221,53 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
               <p className="mt-1 text-xs text-gray-400">
                 画像はあなたのブラウザ内にのみ保存され、キャラクター画像の生成時にGeminiへ参考として送信されます
               </p>
+            </div>
+
+            <div className="rounded-lg border border-indigo-200 bg-white p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-gray-700">✨ オリジナルキャラクターをその場で生成</p>
+                  <p className="text-xs text-gray-400">
+                    上の名前・性別・メモ（と参考画像）から、漫画スタイルの主人公キャラ画像をいま作れます
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={isCreatingChar || !imageApiKey}
+                  onClick={handleCreateCharacter}
+                >
+                  {isCreatingChar ? '生成中...' : customCharacterImage ? '作り直す' : 'キャラクターを生成'}
+                </Button>
+              </div>
+              {!imageApiKey && (
+                <p className="mt-2 text-xs text-amber-600">
+                  この機能を使うには、右上の「API設定」で画像生成APIキー（Gemini）の設定が必要です
+                </p>
+              )}
+              {charCreateError && (
+                <p className="mt-2 whitespace-pre-line text-xs text-red-600">{charCreateError}</p>
+              )}
+              {customCharacterImage && (
+                <div className="mt-3 flex items-center gap-3">
+                  <img
+                    src={customCharacterImage}
+                    alt="生成した主人公キャラクター"
+                    className="h-32 w-32 rounded-lg border border-gray-200 bg-gray-50 object-contain"
+                  />
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-green-700">
+                      ✓ このキャラクターが主人公として全ページの参照に使われます
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      イメージと違うときは、メモを書き足して「作り直す」を押してください
+                    </p>
+                    <Button variant="ghost" size="sm" onClick={() => setCustomCharacterImage('')}>
+                      削除
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </details>

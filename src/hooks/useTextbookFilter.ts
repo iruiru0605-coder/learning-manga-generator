@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '@/store'
-import { subjects, textbooks, units, grades } from '@/data/textbooks'
+import { subjects, textbooks, grades, getUnitsForTextbook } from '@/data/textbooks'
 import type { Subject, Textbook, TeachingUnit } from '@/types'
 
 export function useTextbookFilter() {
@@ -20,9 +20,13 @@ export function useTextbookFilter() {
     )
   }, [grade, subject])
 
-  const availableUnits = useMemo<TeachingUnit[]>(() => {
-    if (!textbook) return []
-    return units.filter((u) => u.textbookId === textbook.id).sort((a, b) => a.order - b.order)
+  const { availableUnits, isCurriculumFallback } = useMemo<{
+    availableUnits: TeachingUnit[]
+    isCurriculumFallback: boolean
+  }>(() => {
+    if (!textbook) return { availableUnits: [], isCurriculumFallback: false }
+    const result = getUnitsForTextbook(textbook)
+    return { availableUnits: result.units, isCurriculumFallback: result.isCurriculumFallback }
   }, [textbook])
 
   const gradeLabel = grade ? grades.find((g) => g.id === grade.id)?.label : null
@@ -33,6 +37,7 @@ export function useTextbookFilter() {
     availableSubjects,
     availableTextbooks,
     availableUnits,
+    isCurriculumFallback,
     gradeLabel,
     subjectLabel,
     textbookLabel,

@@ -26,6 +26,7 @@ export const useStore = create<StoreState>()(
         studentGender: state.studentGender,
         characterNotes: state.characterNotes,
         characterRefImage: state.characterRefImage,
+        customCharacterImage: state.customCharacterImage,
       }),
     }
   )
