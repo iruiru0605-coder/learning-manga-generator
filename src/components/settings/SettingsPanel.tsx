@@ -17,12 +17,17 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const setImageModel = useStore((s) => s.setImageModel)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="mx-4 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+        className="mx-4 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-900/5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-gray-900">API設定</h2>
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-lg">
+            ⚙️
+          </span>
+          <h2 className="font-display text-lg font-extrabold tracking-tight text-gray-900">API設定</h2>
+        </div>
 
         {/* Text AI section */}
         <div className="mb-4 rounded-lg bg-indigo-50 p-3 text-xs text-indigo-800">

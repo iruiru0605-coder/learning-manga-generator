@@ -50,7 +50,7 @@ export function StepScript({ onNext, canAdvance }: StepScriptProps) {
 
   if (!script) {
     return (
-      <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200 text-center">
+      <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-900/5">
         <p className="text-gray-500">まだ台本が生成されていません。前のステップで生成してください。</p>
       </div>
     )
@@ -58,14 +58,19 @@ export function StepScript({ onNext, canAdvance }: StepScriptProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
-        <h2 className="mb-1 text-xl font-bold text-gray-900">ステップ3: 生成された漫画台本</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          AIが作成した8ページの学習漫画の台本です。内容を確認してください
-        </p>
+      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
+        <div className="mb-5 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
+            📝
+          </span>
+          <div>
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-gray-900">生成された漫画台本</h2>
+            <p className="text-sm text-gray-500">AIが作成した8ページの学習漫画の台本です。内容を確認してください</p>
+          </div>
+        </div>
 
-        <div className="mb-4 rounded-lg bg-green-50 p-3">
-          <p className="text-lg font-bold text-gray-900">{script.title}</p>
+        <div className="mb-5 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 ring-1 ring-green-100">
+          <p className="font-display text-lg font-extrabold text-gray-900">{script.title}</p>
           <p className="text-sm text-gray-600">{script.struggleSummary}</p>
         </div>
 

@@ -10,11 +10,13 @@ export function Button({ className, variant = 'primary', size = 'md', ...props }
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50 disabled:pointer-events-none cursor-pointer',
+        'inline-flex items-center justify-center rounded-xl font-bold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none cursor-pointer active:scale-[0.98]',
         {
-          primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm',
-          secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm',
-          ghost: 'text-gray-600 hover:bg-gray-100',
+          primary:
+            'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25 hover:from-indigo-500 hover:to-violet-500 hover:shadow-lg hover:shadow-indigo-600/30',
+          secondary:
+            'bg-white text-gray-700 ring-1 ring-gray-200 shadow-sm hover:bg-indigo-50/60 hover:ring-indigo-200 hover:text-indigo-700',
+          ghost: 'text-gray-600 hover:bg-gray-900/5 hover:text-gray-900',
         }[variant],
         {
           sm: 'h-8 px-3 text-sm',

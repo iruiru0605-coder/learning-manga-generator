@@ -31,7 +31,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header onOpenSettings={() => setShowSettings(true)} />
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
@@ -60,8 +60,21 @@ export function AppShell() {
         {step === 4 && <StepPrompts />}
       </main>
 
-      <footer className="border-t border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
-        学習漫画ジェネレーター —— APIキーはあなたのブラウザにのみ保存され、外部に送信されることはありません
+      <footer className="border-t border-gray-900/5 bg-white/60 py-6 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-1.5 px-4 text-center">
+          <p className="font-display text-sm font-bold text-gray-500">📚 学習漫画ジェネレーター</p>
+          <p className="text-xs text-gray-400">
+            🔒 APIキーはあなたのブラウザにのみ保存され、外部に送信されることはありません
+          </p>
+          <a
+            href="https://github.com/iruiru0605-coder/learning-manga-generator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-400 underline-offset-2 hover:text-indigo-600 hover:underline"
+          >
+            GitHub — オープンソース（MIT License）
+          </a>
+        </div>
       </footer>
     </div>
   )

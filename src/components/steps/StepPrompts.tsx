@@ -476,7 +476,7 @@ export function StepPrompts() {
 
   if (!script) {
     return (
-      <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200 text-center">
+      <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-900/5">
         <p className="text-gray-500">まだ台本が生成されていません。</p>
       </div>
     )
@@ -488,15 +488,20 @@ export function StepPrompts() {
     <div className="space-y-6">
       {/* ===== Section 1: Character References ===== */}
       {characters.length > 0 && (
-        <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">キャラクター参照画像</h2>
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
+                🧑‍🎨
+              </span>
+              <div>
+              <h2 className="font-display text-lg font-extrabold tracking-tight text-gray-900">キャラクター参照画像</h2>
               <p className="text-sm text-gray-500">
                 {hasApiKey
                   ? '先にキャラクター画像を生成すると、全ページで統一されたキャラクターが使われます'
                   : '各キャラクターのプロンプトをコピーしてChatGPT等で画像を生成し、保存しておきましょう。ページ生成時に毎回その画像を添付するとキャラクターが統一されます'}
               </p>
+              </div>
             </div>
             {hasApiKey && (
               <div className="flex items-center gap-2">
@@ -550,13 +555,20 @@ export function StepPrompts() {
       )}
 
       {/* ===== Section 2: Page Image Generation ===== */}
-      <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
-        <h2 className="mb-1 text-lg font-bold text-gray-900">ページ画像生成</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          {hasApiKey
-            ? '各ページの「画像を生成」ボタンで漫画画像を生成します'
-            : 'プロンプトをコピーして外部ツールで画像生成してください'}
-        </p>
+      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
+            🎨
+          </span>
+          <div>
+            <h2 className="font-display text-lg font-extrabold tracking-tight text-gray-900">ページ画像生成</h2>
+            <p className="text-sm text-gray-500">
+              {hasApiKey
+                ? '各ページの「画像を生成」ボタンで漫画画像を生成します'
+                : 'プロンプトをコピーして外部ツールで画像生成してください'}
+            </p>
+          </div>
+        </div>
 
         {/* API status banner */}
         {hasApiKey ? (

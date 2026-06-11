@@ -101,7 +101,7 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
 
   if (isGenerating || status === 'generating') {
     return (
-      <div className="rounded-xl bg-white p-12 shadow-sm border border-gray-200 text-center">
+      <div className="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-gray-900/5">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
           <svg className="h-10 w-10 animate-bounce text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -125,11 +125,16 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
-        <h2 className="mb-1 text-xl font-bold text-gray-900">ステップ2: 苦手を教えてください</h2>
-        <p className="mb-6 text-sm text-gray-500">
-          選んだ単元の中で、特につまずいているところを自由に書いてください
-        </p>
+      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
+            💭
+          </span>
+          <div>
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-gray-900">苦手を教えてください</h2>
+            <p className="text-sm text-gray-500">選んだ単元の中で、特につまずいているところを自由に書いてください</p>
+          </div>
+        </div>
 
         {unit && (
           <div className="mb-4 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">

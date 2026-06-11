@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: 'Noto Sans JP', 'Inter', system-ui, sans-serif;
+  --font-display: 'M PLUS Rounded 1c', 'Noto Sans JP', system-ui, sans-serif;
   --color-primary: #6366f1;
   --color-primary-dark: #4f46e5;
   --color-manga-bg: #faf9f6;
@@ -11,4 +12,29 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  color: #1f2937;
+  background-color: #f8fafc;
+  /* やわらかい紙面のような多層グラデーション背景 */
+  background-image:
+    radial-gradient(40rem 28rem at 115% -5%, rgb(99 102 241 / 0.10), transparent 60%),
+    radial-gradient(36rem 24rem at -15% 0%, rgb(167 139 250 / 0.10), transparent 60%),
+    radial-gradient(48rem 32rem at 50% 120%, rgb(251 191 36 / 0.07), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background-color: rgb(99 102 241 / 0.2);
+}
+
+/* 見出し用の丸ゴシック */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* ブランドのグラデーション文字 */
+.text-brand-gradient {
+  background-image: linear-gradient(135deg, #4f46e5, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

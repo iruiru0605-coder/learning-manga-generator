@@ -50,7 +50,7 @@ export function UnitSelector() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200">
+      <div className="max-h-64 overflow-y-auto rounded-xl bg-white ring-1 ring-gray-200">
         {filtered.length === 0 ? (
           <p className="px-4 py-3 text-sm text-gray-400">該当する単元がありません。下の欄から直接入力できます。</p>
         ) : (
@@ -59,10 +59,10 @@ export function UnitSelector() {
               key={u.id}
               onClick={() => setUnit(u)}
               className={cn(
-                'w-full px-4 py-2.5 text-left text-sm transition-colors border-b border-gray-100 last:border-b-0',
+                'w-full px-4 py-2.5 text-left text-sm font-medium transition-colors border-b border-gray-100 last:border-b-0',
                 selectedUnit?.id === u.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'hover:bg-indigo-50 text-gray-700'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
+                  : 'hover:bg-indigo-50/70 text-gray-700'
               )}
             >
               {u.label}

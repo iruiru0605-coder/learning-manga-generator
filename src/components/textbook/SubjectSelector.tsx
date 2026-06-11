@@ -26,13 +26,13 @@ export function SubjectSelector() {
             key={s.id}
             onClick={() => setSubject(s)}
             className={cn(
-              'flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
+              'flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-150',
               selectedSubject?.id === s.id
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white text-gray-700 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
+                ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25'
+                : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:-translate-y-0.5 hover:bg-indigo-50/60 hover:ring-indigo-300 hover:shadow-sm'
             )}
           >
-            <span>{subjectIcons[s.id] || '📚'}</span>
+            <span className="text-base">{subjectIcons[s.id] || '📚'}</span>
             {s.label}
           </button>
         ))}
