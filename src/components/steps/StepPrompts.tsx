@@ -36,6 +36,15 @@ function downloadDataUrl(dataUrl: string, filename: string) {
   document.body.removeChild(a)
 }
 
+// 1枚絵から三面図（キャラクターデザインシート）を作るための外部ツール用プロンプト
+const TURNAROUND_PROMPT = `添付した画像のキャラクターの「キャラクターデザインシート（三面図）」を1枚の画像として作成してください。
+
+- 同一キャラクターの「正面」「横向き」「後ろ姿」の全身立ち姿を横に並べる
+- 髪型・髪色・服装・持ち物などの特徴を、添付画像に忠実に保つ
+- 白背景・シンプルな直立ポーズ・全身が見えること
+- 画風は添付画像の雰囲気を維持する（漫画用途の場合: clean line art, character design sheet, full body turnaround, white background）
+- 画像内に文字やラベルは入れないこと`
+
 // ChatGPT等に1回の送信でまとめて依頼するためのバンドルプロンプト（キャラ画像の添付前提）
 function buildBundlePrompt(pages: MangaPage[]): string {
   const header =
@@ -717,6 +726,39 @@ export function StepPrompts() {
               </div>
             )}
           </div>
+
+          {/* 初心者向け: 参照画像のコツ */}
+          <details className="mb-4 rounded-xl bg-amber-50/70 p-3 ring-1 ring-amber-200">
+            <summary className="cursor-pointer text-xs font-bold text-amber-900">
+              📷 はじめての方へ: どんな画像をアップすればいい？（コツと三面図の作り方）
+            </summary>
+            <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-amber-900">
+              <p>
+                ・<strong>ふつうの1枚絵でOK</strong>です。正面のイラスト1枚で十分機能します。
+                三面図（正面・横・後ろが並んだ画像）があると、後ろ姿や横向きのコマでも髪型や服装がブレにくくなります
+              </p>
+              <p>
+                ・コツ: <strong>1枚に1キャラだけ</strong>・できれば全身・背景がシンプルな画像が理想です
+              </p>
+              <p>
+                ・<strong>実写の写真</strong>はそのまま使うと漫画の画風と混ざることがあります。
+                「画像をアップ → 🪄 画像からプロンプトを自動作成 → 生成する」で一度漫画スタイルのキャラに変換するのがおすすめです
+                （主人公のお子さんの写真は、ステップ2の「参考画像」からでも変換できます）
+              </p>
+              <p>
+                ・手持ちの1枚絵から<strong>三面図を作りたい</strong>ときは、下のボタンでプロンプトをコピーし、
+                ChatGPT等にその画像を添付して貼り付けてください。できた三面図を「画像をアップ」で登録すれば完成です
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-2"
+              onClick={() => copy(TURNAROUND_PROMPT, 'turnaround')}
+            >
+              {copiedId === 'turnaround' ? 'コピー済み ✓' : '1枚絵→三面図化プロンプトをコピー'}
+            </Button>
+          </details>
 
           <div className="space-y-3">
             {characters.map((char) => (
