@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/store'
+import { Button } from '@/components/ui/Button'
+import { Icon } from '@/components/ui/Icon'
 import { Header } from './Header'
 import { StepIndicator } from './StepIndicator'
 import { StepTextbook } from '@/components/steps/StepTextbook'
@@ -41,6 +43,13 @@ export function AppShell() {
     if (next > maxReached) setMaxReached(next)
   }
 
+  // ステップを移動したら必ずページの先頭から表示する（縦に長い画面対策）
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [step])
+
+  const canNext = step === 1 ? canAdvanceFrom1 : step === 2 ? canAdvanceFrom2 : step === 3 ? canAdvanceFrom3 : false
+
   return (
     <div className="min-h-screen">
       <Header onOpenSettings={() => setShowSettings(true)} />
@@ -49,28 +58,46 @@ export function AppShell() {
 
       <StepIndicator currentStep={step} maxReached={maxReached} onStepClick={goTo} />
 
-      <main className="mx-auto max-w-4xl px-4 pb-16">
-        {step === 1 && (
-          <StepTextbook
-            onNext={handleNext}
-            canAdvance={canAdvanceFrom1}
-            onShowSample={handleShowSample}
-          />
-        )}
-        {step === 2 && (
-          <StepStruggle
-            onNext={handleNext}
-            canAdvance={canAdvanceFrom2}
-          />
-        )}
-        {step === 3 && (
-          <StepScript
-            onNext={handleNext}
-            canAdvance={canAdvanceFrom3}
-          />
-        )}
-        {step === 4 && <StepPrompts />}
+      <main className="mx-auto max-w-4xl px-4 pb-24">
+        <div key={step} className="step-enter">
+          {step === 1 && (
+            <StepTextbook
+              onNext={handleNext}
+              canAdvance={canAdvanceFrom1}
+              onShowSample={handleShowSample}
+            />
+          )}
+          {step === 2 && (
+            <StepStruggle
+              onNext={handleNext}
+              canAdvance={canAdvanceFrom2}
+            />
+          )}
+          {step === 3 && (
+            <StepScript
+              onNext={handleNext}
+              canAdvance={canAdvanceFrom3}
+            />
+          )}
+          {step === 4 && <StepPrompts />}
+        </div>
       </main>
+
+      {/* 縦長ページ対策のフローティングナビ */}
+      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2 print:hidden">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          title="ページの先頭へ"
+          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white text-gray-500 shadow-lg ring-1 ring-gray-900/10 transition-all hover:-translate-y-0.5 hover:text-indigo-600"
+        >
+          <Icon name="arrowUp" className="h-4 w-4" />
+        </button>
+        {canNext && step < 4 && (
+          <Button onClick={handleNext} size="md" className="shadow-xl shadow-indigo-600/30">
+            次のステップへ →
+          </Button>
+        )}
+      </div>
 
       <footer className="border-t border-gray-900/5 bg-white/60 py-6 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-1.5 px-4 text-center">

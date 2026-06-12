@@ -39,6 +39,22 @@ body {
   color: transparent;
 }
 
+/* ステップ切替時のふわっと入るアニメーション */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.step-enter {
+  animation: fade-up 0.35s ease-out;
+}
+
 /* 印刷時: 印刷ビュー（.print-area）だけを出力する */
 @media print {
   body {

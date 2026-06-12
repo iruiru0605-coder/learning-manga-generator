@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '@/store'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Icon } from '@/components/ui/Icon'
 import type { MangaPage } from '@/types'
 
 interface StepScriptProps {
@@ -105,8 +106,8 @@ export function StepScript({ onNext, canAdvance }: StepScriptProps) {
 
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
         <div className="mb-5 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
-            📝
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25">
+            <Icon name="script" />
           </span>
           <div>
             <h2 className="font-display text-xl font-extrabold tracking-tight text-gray-900">生成された漫画台本</h2>

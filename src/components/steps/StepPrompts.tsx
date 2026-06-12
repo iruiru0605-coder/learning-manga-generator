@@ -5,6 +5,7 @@ import { generateImage, buildCharacterPrompt, IMAGE_MODELS, NO_TEXT_RULE, dataUr
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import { idbSetImage, idbGetAllImages } from '@/services/imageStore'
 import { PrintView } from '@/components/print/PrintView'
+import { Icon } from '@/components/ui/Icon'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import type { MangaPage } from '@/types'
@@ -32,6 +33,24 @@ function downloadDataUrl(dataUrl: string, filename: string) {
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
+}
+
+// ChatGPT等に1回の送信でまとめて依頼するためのバンドルプロンプト（キャラ画像の添付前提）
+function buildBundlePrompt(pages: MangaPage[]): string {
+  const header =
+    `【お願い】添付したキャラクター参照画像のキャラクターを使って、以下の${pages.length}ページの学習漫画を「1ページ＝1枚」で合計${pages.length}枚、上から順番に生成してください。\n` +
+    '- すべてのページで添付画像のキャラクターデザインを忠実に保つこと\n' +
+    '- 各ページのセリフ（日本語）を吹き出しに一字一句正確に描き込むこと（誤字や存在しない漢字は禁止）\n' +
+    '- 画風: 白黒の教育漫画、スクリーントーン、かわいい子ども向けタッチ\n\n'
+  return (
+    header +
+    pages
+      .map((p) => {
+        const block = buildDialogueTextBlock(p)
+        return `■ ページ${p.pageNumber}「${p.title}」\n${p.imageGenerationPrompt || ''}${block ? `\n\n${block}` : ''}`
+      })
+      .join('\n\n――――――――――\n\n')
+  )
 }
 
 // 日本語セリフの描き込み指定ブロック。Pro モデルでの生成と、コピペ用プロンプトの両方で使う
@@ -276,11 +295,14 @@ function PromptCard({
           </details>
         )}
 
-        <div className="rounded-lg bg-gray-900 p-3">
-          <pre className="whitespace-pre-wrap text-xs text-green-400 font-mono leading-relaxed max-h-48 overflow-y-auto">
+        <details className="rounded-lg bg-gray-900">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-gray-400 transition-colors hover:text-gray-200">
+            画像生成プロンプトの中身を表示（コピーは上のボタンでできます）
+          </summary>
+          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap px-3 pb-3 font-mono text-xs leading-relaxed text-green-400">
             {promptText || '(画像生成プロンプトは生成されませんでした)'}
           </pre>
-        </div>
+        </details>
       </div>
     </Card>
   )
@@ -514,6 +536,14 @@ export function StepPrompts() {
   const generatedCount = Object.values(pageStates).filter((s) => s.status === 'done').length
   const charGeneratedCount = Object.values(charStates).filter((s) => s.status === 'done').length
 
+  // ChatGPT用: 4ページずつのまとめプロンプト
+  const bundleChunks: MangaPage[][] = []
+  if (script?.pages) {
+    for (let i = 0; i < script.pages.length; i += 4) {
+      bundleChunks.push(script.pages.slice(i, i + 4))
+    }
+  }
+
   // ── Empty state ─────────────────────────────────────
 
   if (!script) {
@@ -534,8 +564,8 @@ export function StepPrompts() {
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
-                🧑‍🎨
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25">
+                <Icon name="palette" />
               </span>
               <div>
               <h2 className="font-display text-lg font-extrabold tracking-tight text-gray-900">キャラクター参照画像</h2>
@@ -600,8 +630,8 @@ export function StepPrompts() {
       {/* ===== Section 2: Page Image Generation ===== */}
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
         <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
-            🎨
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25">
+            <Icon name="image" />
           </span>
           <div>
             <h2 className="font-display text-lg font-extrabold tracking-tight text-gray-900">ページ画像生成</h2>
@@ -677,6 +707,30 @@ export function StepPrompts() {
           </Button>
         </div>
 
+        {/* ChatGPT用まとめコピー */}
+        {bundleChunks.length > 0 && (
+          <div className="mb-4 rounded-xl bg-indigo-50/70 p-3 ring-1 ring-indigo-100">
+            <p className="mb-2 text-xs font-bold text-indigo-900">
+              💬 ChatGPTでまとめて生成（おすすめ）: キャラクター画像を添付 → 下のボタンでコピーして貼り付け → 1回の送信で4ページ依頼
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {bundleChunks.map((chunk, i) => {
+                const label = `ページ${chunk[0].pageNumber}〜${chunk[chunk.length - 1].pageNumber}`
+                return (
+                  <Button
+                    key={i}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => copy(buildBundlePrompt(chunk), `bundle-${i}`)}
+                  >
+                    {copiedId === `bundle-${i}` ? `${label} コピー済み ✓` : `${label}をまとめてコピー`}
+                  </Button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Copy-paste workflow guide */}
         <details className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 p-3" open={!hasApiKey}>
           <summary className="cursor-pointer text-xs font-bold text-indigo-900">
@@ -689,8 +743,9 @@ export function StepPrompts() {
               なければ各キャラクターの「プロンプトをコピー」をChatGPT等に貼り付けて生成し、画像を保存します
             </li>
             <li>
-              <span className="font-medium">ページを生成するたびに、保存したキャラクター画像（2〜3枚）をチャットに添付</span>
-              してから、ページのプロンプトを貼り付けます。「添付した画像のキャラクターで描いて」と一言添えると確実です
+              <span className="font-medium">保存したキャラクター画像（2〜3枚）をチャットに添付</span>
+              してから、上の「ページ1〜4をまとめてコピー」を貼り付けて送信すると、1回の依頼で4ページ分を順番に生成してもらえます
+              （途中で止まったら「続きをお願いします」と送るだけ）
             </li>
             <li>できるだけ同じチャット内で続けて生成すると、絵柄とキャラクターがより安定します</li>
             <li>

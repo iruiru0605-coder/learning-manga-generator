@@ -145,7 +145,8 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </select>
         <p className="mb-4 text-xs text-gray-400">
           標準モデルは日本語の文字描画が苦手（文字化けの原因）なため、文字を入れずに生成し、セリフはアプリ上に表示します。
-          Proモデルは日本語のセリフをそのまま画像に描き込めます。
+          Proモデルは日本語セリフを描き込めますが料金が高めです。
+          仕上がり重視なら、ステップ4の「まとめてコピー」でChatGPTに貼り付けて生成する方法が品質・コストともにおすすめです。
         </p>
 
         <div className="mb-4 rounded-lg bg-green-50 p-3 text-xs text-green-800">

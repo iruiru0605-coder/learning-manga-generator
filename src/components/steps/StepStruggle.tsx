@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useStore } from '@/store'
 import { useMangaGeneration } from '@/hooks/useMangaGeneration'
 import { Button } from '@/components/ui/Button'
+import { Icon } from '@/components/ui/Icon'
 import { fileToResizedDataUrl, dataUrlToResizedDataUrl } from '@/services/image/resize'
 import { generateImage, buildCharacterPrompt, NO_TEXT_RULE, dataUrlToImageRef, type ImageRef } from '@/services/image/gemini'
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
@@ -156,8 +157,8 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
     <div className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
-            💭
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25">
+            <Icon name="chat" />
           </span>
           <div>
             <h2 className="font-display text-xl font-extrabold tracking-tight text-gray-900">苦手を教えてください</h2>

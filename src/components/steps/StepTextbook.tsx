@@ -1,4 +1,5 @@
 import { useStore } from '@/store'
+import { Icon } from '@/components/ui/Icon'
 import { GradeSelector } from '@/components/textbook/GradeSelector'
 import { SubjectSelector } from '@/components/textbook/SubjectSelector'
 import { TextbookSelector } from '@/components/textbook/TextbookSelector'
@@ -17,6 +18,16 @@ export function StepTextbook({ onNext, canAdvance, onShowSample }: StepTextbookP
 
   return (
     <div className="space-y-6">
+      {/* ヒーロー */}
+      <div className="pb-1 pt-4 text-center">
+        <h2 className="font-display text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+          苦手が、<span className="text-brand-gradient">好きになる</span>。
+        </h2>
+        <p className="mt-2 text-sm text-gray-500">
+          教科書の単元とお子さんの苦手から、AIが世界にひとつの学習漫画をつくります
+        </p>
+      </div>
+
       {/* 初めての人向け: APIキーなしで完成イメージを見られる */}
       <button
         onClick={onShowSample}
@@ -32,8 +43,8 @@ export function StepTextbook({ onNext, canAdvance, onShowSample }: StepTextbookP
 
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-xl">
-            📖
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25">
+            <Icon name="book" />
           </span>
           <div>
             <h2 className="font-display text-xl font-extrabold tracking-tight text-gray-900">教科書を選ぶ</h2>
