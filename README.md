@@ -1,6 +1,14 @@
 # 📚 学習漫画ジェネレーター
 
-教科書の単元と苦手を入力するだけで、AIが8ページの学習漫画台本と画像生成プロンプトを自動生成するWebアプリです。
+**苦手が、好きになる。** — 教科書の単元とお子さんの苦手を入力するだけで、AIがわが子専用の学習漫画をつくる無料Webアプリです。
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PWA Ready](https://img.shields.io/badge/PWA-ready-5A0FC8.svg)](https://iruiru0605-coder.github.io/learning-manga-generator/)
+[![Made with React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
+
+👉 **今すぐ使う（インストール不要）: https://iruiru0605-coder.github.io/learning-manga-generator/**
+
+![学習漫画ジェネレーターのスクリーンショット](docs/screenshot.png)
 
 勉強が苦手なお子さんを持つ親御さんが、お子さんに合わせた学習漫画を手軽に作れることを目指しています。
 

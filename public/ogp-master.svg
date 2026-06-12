@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1080" cy="60" r="220" fill="#ffffff" opacity="0.06"/>
+  <circle cx="100" cy="580" r="180" fill="#ffffff" opacity="0.06"/>
+
+  <!-- 開いた本のアイコン -->
+  <g transform="translate(70,170) scale(0.6)">
+    <path d="M256 168 C 216 140, 152 136, 116 144 C 104 147, 96 156, 96 168 L 96 344 C 96 356, 106 364, 118 361 C 154 353, 216 357, 256 384 C 296 357, 358 353, 394 361 C 406 364, 416 356, 416 344 L 416 168 C 416 156, 408 147, 396 144 C 360 136, 296 140, 256 168 Z" fill="#ffffff" opacity="0.95"/>
+    <path d="M256 176 L 256 380" stroke="#c7d2fe" stroke-width="10" stroke-linecap="round"/>
+    <g stroke="#a5b4fc" stroke-width="10" stroke-linecap="round">
+      <path d="M136 200 L 224 192"/>
+      <path d="M136 236 L 224 230"/>
+      <path d="M288 192 L 376 200"/>
+      <path d="M288 230 L 376 236"/>
+    </g>
+    <g>
+      <circle cx="362" cy="296" r="36" fill="#fbbf24"/>
+      <path d="M340 324 L 326 350 L 360 332 Z" fill="#fbbf24"/>
+      <path d="M348 296 L 358 306 L 378 284" stroke="#78350f" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <text x="370" y="235" font-family="'Yu Gothic UI', 'Meiryo', sans-serif" font-size="62" font-weight="bold" fill="#ffffff">学習漫画ジェネレーター</text>
+  <text x="370" y="325" font-family="'Yu Gothic UI', 'Meiryo', sans-serif" font-size="44" font-weight="bold" fill="#fde68a">苦手が、好きになる。</text>
+  <text x="370" y="385" font-family="'Yu Gothic UI', 'Meiryo', sans-serif" font-size="27" fill="#e0e7ff">教科書の単元と苦手から、AIがわが子専用の学習まんがをつくる</text>
+
+  <g font-family="'Yu Gothic UI', 'Meiryo', sans-serif" font-size="22" font-weight="bold" fill="#ffffff">
+    <rect x="370" y="440" rx="22" width="220" height="46" fill="#ffffff" opacity="0.16"/>
+    <text x="402" y="471">インストール不要</text>
+    <rect x="610" y="440" rx="22" width="250" height="46" fill="#ffffff" opacity="0.16"/>
+    <text x="638" y="471">Geminiキー1本でOK</text>
+    <rect x="880" y="440" rx="22" width="190" height="46" fill="#ffffff" opacity="0.16"/>
+    <text x="912" y="471">PDF出力対応</text>
+  </g>
+
+  <text x="370" y="560" font-family="'Yu Gothic UI', 'Meiryo', sans-serif" font-size="22" fill="#c7d2fe">無料・オープンソース（MIT License）</text>
+</svg>
