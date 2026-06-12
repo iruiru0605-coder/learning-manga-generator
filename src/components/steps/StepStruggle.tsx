@@ -227,6 +227,9 @@ export function StepStruggle({ onNext, canAdvance }: StepStruggleProps) {
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
                 />
+                <p className="mt-1 text-xs text-amber-600">
+                  ※できた漫画をSNS等で公開する予定がある場合は、実名ではなくニックネームの使用をおすすめします
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">性別</label>
