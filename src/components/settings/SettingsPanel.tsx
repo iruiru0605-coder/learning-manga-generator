@@ -168,8 +168,12 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                 <td>約160円（$0.134×8枚）</td>
               </tr>
               <tr>
-                <td>ChatGPT Image2</td>
-                <td>Plus加入者は無料</td>
+                <td>ChatGPT 無料版（コピペ）</td>
+                <td>0円（1日2〜3枚まで）</td>
+              </tr>
+              <tr>
+                <td>ChatGPT Plus（コピペ）</td>
+                <td>Plus加入者は追加費用なし</td>
               </tr>
               <tr>
                 <td>NanoBanana（無料枠）</td>

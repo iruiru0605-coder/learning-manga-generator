@@ -919,8 +919,9 @@ export function StepPrompts() {
               生成結果の文字が化ける場合はその部分を削除して空欄の吹き出しで生成し、各ページの「セリフ一覧」を添えてください
             </li>
             <li>
-              ChatGPT無料プランの画像生成は1日数枚程度の回数制限があります。
-              8ページ作る場合は数日に分けるか、ChatGPT Plus または本ツールのGemini生成をご検討ください
+              <span className="font-medium">ChatGPTは無料版でもOK</span>（画像生成は1日2〜3枚が目安）。
+              4ページ漫画なら約2日、8ページなら3〜4日で完成します。
+              「毎日2ページずつ読み進める連載」のような楽しみ方もおすすめです。急ぎたい場合は ChatGPT Plus か本ツールのGemini生成をどうぞ
             </li>
           </ol>
         </details>
