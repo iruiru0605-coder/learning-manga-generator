@@ -28,6 +28,7 @@ export const useStore = create<StoreState>()(
         characterRefImage: state.characterRefImage,
         customCharacterImage: state.customCharacterImage,
         pageCount: state.pageCount,
+        charPromptOverrides: state.charPromptOverrides,
         // 作業内容もリロードで消えないように永続化する
         grade: state.grade,
         subject: state.subject,

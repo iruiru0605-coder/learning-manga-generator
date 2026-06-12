@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useStore } from '@/store'
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
-import { generateImage, buildCharacterPrompt, IMAGE_MODELS, NO_TEXT_RULE, dataUrlToImageRef, type ImageRef } from '@/services/image/gemini'
+import { generateImage, buildCharacterPrompt, buildCharacterPromptFromDescription, describeCharacterImage, IMAGE_MODELS, NO_TEXT_RULE, dataUrlToImageRef, type ImageRef } from '@/services/image/gemini'
+import { fileToResizedDataUrl } from '@/services/image/resize'
 import { toFriendlyErrorMessage } from '@/services/friendlyError'
 import { idbSetImage, idbGetAllImages } from '@/services/imageStore'
 import { PrintView } from '@/components/print/PrintView'
@@ -86,6 +87,15 @@ function CharacterCard({
   canGenerate,
   onCopyPrompt,
   isCopied,
+  onUpload,
+  promptValue,
+  isCustomPrompt,
+  onPromptChange,
+  onResetPrompt,
+  onAutoPrompt,
+  canAutoPrompt,
+  autoPromptBusy,
+  autoPromptError,
 }: {
   label: string
   name: string
@@ -96,6 +106,15 @@ function CharacterCard({
   canGenerate: boolean
   onCopyPrompt: () => void
   isCopied: boolean
+  onUpload: (file: File) => void
+  promptValue: string
+  isCustomPrompt: boolean
+  onPromptChange: (v: string) => void
+  onResetPrompt: () => void
+  onAutoPrompt: () => void
+  canAutoPrompt: boolean
+  autoPromptBusy: boolean
+  autoPromptError: string
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -121,7 +140,7 @@ function CharacterCard({
             </div>
           ) : (
             <div className="flex h-full items-center justify-center text-center text-xs text-gray-400">
-              未生成
+              未設定
             </div>
           )}
         </div>
@@ -136,7 +155,7 @@ function CharacterCard({
           <p className="mb-1 text-xs text-gray-500">{personality}</p>
           <p className="text-xs text-gray-400 line-clamp-2">{appearance}</p>
           {state.status === 'error' && (
-            <p className="mt-1 text-xs text-red-600">{state.error}</p>
+            <p className="mt-1 whitespace-pre-line text-xs text-red-600">{state.error}</p>
           )}
         </div>
 
@@ -155,7 +174,20 @@ function CharacterCard({
                   : '生成する'}
             </Button>
           )}
-          <Button variant={canGenerate ? 'ghost' : 'secondary'} size="sm" onClick={onCopyPrompt}>
+          <label className="inline-flex h-8 cursor-pointer items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-gray-200 transition-all hover:bg-indigo-50/60 hover:ring-indigo-200">
+            画像をアップ
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) onUpload(f)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          <Button variant="ghost" size="sm" onClick={onCopyPrompt}>
             {isCopied ? 'コピー済み ✓' : 'プロンプトをコピー'}
           </Button>
           {state.status === 'done' && state.dataUrl && (
@@ -169,6 +201,39 @@ function CharacterCard({
           )}
         </div>
       </div>
+
+      {/* プロンプト編集（生成・コピーの両方に使われる） */}
+      <details className="mt-3 rounded-lg bg-gray-50 p-2.5">
+        <summary className="cursor-pointer text-xs font-medium text-gray-500 transition-colors hover:text-gray-700">
+          プロンプトを編集{isCustomPrompt && '（カスタム中 ✏️）'}
+        </summary>
+        <textarea
+          className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-2.5 py-2 font-mono text-xs leading-relaxed text-gray-700 focus:border-indigo-400 focus:outline-none"
+          rows={6}
+          value={promptValue}
+          onChange={(e) => onPromptChange(e.target.value)}
+        />
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          {state.status === 'done' && state.dataUrl && (
+            <Button variant="secondary" size="sm" disabled={!canAutoPrompt || autoPromptBusy} onClick={onAutoPrompt}>
+              {autoPromptBusy ? '画像を解析中...' : '🪄 上の画像からプロンプトを自動作成'}
+            </Button>
+          )}
+          {isCustomPrompt && (
+            <Button variant="ghost" size="sm" onClick={onResetPrompt}>
+              自動生成のプロンプトに戻す
+            </Button>
+          )}
+          {state.status === 'done' && state.dataUrl && !canAutoPrompt && (
+            <span className="text-xs text-gray-400">（自動作成にはGeminiキーの設定が必要です）</span>
+          )}
+        </div>
+        {autoPromptError && <p className="mt-1.5 whitespace-pre-line text-xs text-red-600">{autoPromptError}</p>}
+        <p className="mt-1.5 text-xs text-gray-400">
+          このプロンプトは「生成する」「プロンプトをコピー」の両方に使われます。
+          アップロードした画像をそのまま参照として使う場合は、編集しなくて大丈夫です。
+        </p>
+      </details>
     </div>
   )
 }
@@ -316,7 +381,16 @@ export function StepPrompts() {
   const imageModel = useStore((s) => s.imageModel)
   const characterRefImage = useStore((s) => s.characterRefImage)
   const customCharacterImage = useStore((s) => s.customCharacterImage)
+  const apiKey = useStore((s) => s.apiKey)
+  const provider = useStore((s) => s.provider)
+  const charPromptOverrides = useStore((s) => s.charPromptOverrides)
+  const setCharPromptOverride = useStore((s) => s.setCharPromptOverride)
   const { copiedId, copy } = useCopyToClipboard()
+
+  // プロンプト自動作成（vision）に使えるGeminiキー
+  const geminiTextKey = imageApiKey.trim() || (provider === 'gemini' ? apiKey.trim() : '')
+  const [autoPromptBusy, setAutoPromptBusy] = useState<string | null>(null)
+  const [autoPromptErrors, setAutoPromptErrors] = useState<Record<string, string>>({})
 
   // Character reference generation state
   // ステップ2でその場生成したオリジナル主人公キャラがあれば、生徒役の参照画像として最初からセットする
@@ -409,7 +483,8 @@ export function StepPrompts() {
       setCharStates((prev) => ({ ...prev, [key]: { status: 'generating' } }))
 
       try {
-        let prompt = buildCharacterPrompt(char)
+        // 手動編集されたプロンプトがあればそれを優先する
+        let prompt = charPromptOverrides[key]?.trim() || buildCharacterPrompt(char)
         let referenceImages: ImageRef[] | undefined
 
         // 生徒役は保護者がアップロードした参考画像に似せて生成する
@@ -438,7 +513,7 @@ export function StepPrompts() {
         setCharStates((prev) => ({ ...prev, [key]: { status: 'error', error: msg } }))
       }
     },
-    [characters, imageApiKey, imageModel, characterRefImage],
+    [characters, imageApiKey, imageModel, characterRefImage, charPromptOverrides],
   )
 
   const handleGenerateAllChars = useCallback(async () => {
@@ -446,6 +521,41 @@ export function StepPrompts() {
       await handleGenerateChar(char.key)
     }
   }, [characters, handleGenerateChar])
+
+  // 手持ちのキャラクター画像（三面図など）をアップロードしてそのまま参照に使う
+  const handleUploadChar = useCallback(async (key: string, file: File) => {
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 768)
+      setCharStates((prev) => ({ ...prev, [key]: { status: 'done', dataUrl } }))
+      idbSetImage(`char-${key}`, dataUrl).catch(() => {})
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '画像の読み込みに失敗しました'
+      setCharStates((prev) => ({ ...prev, [key]: { status: 'error', error: msg } }))
+    }
+  }, [])
+
+  // アップロード画像からプロンプトをテキストAIで自動作成（画像生成より大幅に安い）
+  const handleAutoPrompt = useCallback(
+    async (key: string) => {
+      const img = charStates[key]?.dataUrl
+      if (!img || !geminiTextKey) return
+      setAutoPromptBusy(key)
+      setAutoPromptErrors((prev) => ({ ...prev, [key]: '' }))
+      try {
+        const description = await describeCharacterImage(img, geminiTextKey)
+        const char = characters.find((c) => c.key === key)
+        setCharPromptOverride(key, buildCharacterPromptFromDescription(char?.name || 'キャラクター', description))
+      } catch (err) {
+        setAutoPromptErrors((prev) => ({
+          ...prev,
+          [key]: toFriendlyErrorMessage(err, 'プロンプトの自動作成に失敗しました'),
+        }))
+      } finally {
+        setAutoPromptBusy(null)
+      }
+    },
+    [charStates, geminiTextKey, characters, setCharPromptOverride],
+  )
 
   // Collect reference images for page generation
   const getCharRefs = useCallback((): ImageRef[] => {
@@ -571,8 +681,8 @@ export function StepPrompts() {
               <h2 className="font-display text-lg font-extrabold tracking-tight text-gray-900">キャラクター参照画像</h2>
               <p className="text-sm text-gray-500">
                 {hasApiKey
-                  ? '先にキャラクター画像を生成すると、全ページで統一されたキャラクターが使われます'
-                  : '各キャラクターのプロンプトをコピーしてChatGPT等で画像を生成し、保存しておきましょう。ページ生成時に毎回その画像を添付するとキャラクターが統一されます'}
+                  ? 'キャラクター画像を用意すると、全ページで統一されたキャラクターが使われます。手持ちの三面図やキャラ画像があれば「画像をアップ」でそのまま使えます（生成不要・無料、次回以降も自動で使い回されます）'
+                  : '手持ちのキャラ画像（三面図など）を「画像をアップ」で登録するか、プロンプトをコピーしてChatGPT等で生成・保存しましょう。ページ生成時にその画像を添付するとキャラクターが統一されます'}
               </p>
               </div>
             </div>
@@ -619,8 +729,22 @@ export function StepPrompts() {
                 state={charStates[char.key] || { status: 'idle' }}
                 onGenerate={() => handleGenerateChar(char.key)}
                 canGenerate={hasApiKey}
-                onCopyPrompt={() => copy(`${NO_TEXT_RULE}\n\n${buildCharacterPrompt(char)}`, `char-${char.key}`)}
+                onCopyPrompt={() =>
+                  copy(
+                    `${NO_TEXT_RULE}\n\n${charPromptOverrides[char.key]?.trim() || buildCharacterPrompt(char)}`,
+                    `char-${char.key}`,
+                  )
+                }
                 isCopied={copiedId === `char-${char.key}`}
+                onUpload={(file) => handleUploadChar(char.key, file)}
+                promptValue={charPromptOverrides[char.key] || buildCharacterPrompt(char)}
+                isCustomPrompt={!!charPromptOverrides[char.key]}
+                onPromptChange={(v) => setCharPromptOverride(char.key, v)}
+                onResetPrompt={() => setCharPromptOverride(char.key, '')}
+                onAutoPrompt={() => handleAutoPrompt(char.key)}
+                canAutoPrompt={!!geminiTextKey}
+                autoPromptBusy={autoPromptBusy === char.key}
+                autoPromptError={autoPromptErrors[char.key] || ''}
               />
             ))}
           </div>

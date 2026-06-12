@@ -123,6 +123,72 @@ export async function generateImage(req: ImageGenRequest): Promise<ImageGenRespo
 }
 
 /**
+ * アップロードされたキャラクター画像（三面図など）から、画像生成用の
+ * キャラクター説明をテキストAI（gemini-2.5-flash・低コスト）で作る。
+ */
+export async function describeCharacterImage(dataUrl: string, apiKey: string): Promise<string> {
+  const ref = dataUrlToImageRef(dataUrl)
+  if (!ref) throw new Error('画像の読み込みに失敗しました')
+
+  const model = 'gemini-2.5-flash'
+  const url = import.meta.env.DEV
+    ? `/api/gemini/v1beta/models/${model}:generateContent`
+    : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (import.meta.env.DEV) {
+    headers['x-goog-api-key'] = apiKey
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType: ref.mimeType, data: ref.data } },
+            {
+              text:
+                'Describe this character precisely for an image-generation prompt: hair style and color, eyes, face, ' +
+                'outfit, accessories, body proportions, and art style. Write 3-6 concise English sentences. ' +
+                'Output only the description, no preamble.',
+            },
+          ],
+        },
+      ],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 1000 },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gemini APIエラー (${res.status})`)
+  }
+
+  const data = await res.json()
+  const text = ((data.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
+    .map((p) => p.text ?? '')
+    .join('')
+    .trim()
+  if (!text) throw new Error('画像の説明を生成できませんでした。もう一度お試しください。')
+  return text
+}
+
+/** アップロード画像の説明文から、キャラクター生成プロンプトを組み立てる */
+export function buildCharacterPromptFromDescription(name: string, description: string): string {
+  return `Character reference sheet for a Japanese educational manga character.
+Single character, full body standing pose, front view, white background.
+
+Name: ${name}
+Appearance (from the uploaded reference image): ${description}
+
+Style: Clean manga line art, black and white, simple shading, chibi-inspired proportions, cute and friendly expression.
+Character design sheet, turnaround reference. Safe for children's educational materials.
+Cartoon illustration, 2D anime art, G-rated content. No background, just the character on white.`
+}
+
+/**
  * Shortcut: generate character reference image from a description.
  */
 export function buildCharacterPrompt(character: {

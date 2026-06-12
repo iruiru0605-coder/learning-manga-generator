@@ -17,6 +17,8 @@ export interface SettingsSlice {
   customCharacterImage: string
   /** 漫画のページ数（4/8/12） */
   pageCount: number
+  /** キャラクター生成プロンプトの手動上書き（key: teacher/student/mascot） */
+  charPromptOverrides: Record<string, string>
   setApiKey: (key: string) => void
   setProvider: (p: ProviderId) => void
   setModelName: (m: string) => void
@@ -29,6 +31,7 @@ export interface SettingsSlice {
   setCharacterRefImage: (dataUrl: string) => void
   setCustomCharacterImage: (dataUrl: string) => void
   setPageCount: (n: number) => void
+  setCharPromptOverride: (key: string, prompt: string) => void
 }
 
 export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
@@ -45,6 +48,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   characterRefImage: '',
   customCharacterImage: '',
   pageCount: 8,
+  charPromptOverrides: {},
   setApiKey: (apiKey) => set({ apiKey }),
   setProvider: (provider) => set({ provider }),
   setModelName: (modelName) => set({ modelName }),
@@ -57,4 +61,6 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   setCharacterRefImage: (characterRefImage) => set({ characterRefImage }),
   setCustomCharacterImage: (customCharacterImage) => set({ customCharacterImage }),
   setPageCount: (pageCount) => set({ pageCount }),
+  setCharPromptOverride: (key, prompt) =>
+    set((state) => ({ charPromptOverrides: { ...state.charPromptOverrides, [key]: prompt } })),
 })
